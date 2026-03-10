@@ -39,6 +39,41 @@ def get_open_orders(api_key: str, private_key: str) -> dict:
     return response.json()
 
 
+def execute_crypto_withdrawal(api_key: str, private_key: str, asset: str, address_nickname: str, amount: str) -> dict:
+    urlpath = '/0/private/Withdraw'
+    nonce = str(int(time.time() * 1000))
+    
+    data = {
+        'nonce': nonce,
+        'asset': asset,
+        'key': address_nickname, 
+        'amount': amount
+    }
+
+    signature = _get_kraken_signature(urlpath, data, private_key)
+
+    headers = {
+        'API-Key': api_key,
+        'API-Sign': signature,
+    }
+
+    try:
+        response = requests.post(
+            'https://api.kraken.com' + urlpath,  
+            headers=headers,
+            data=data,
+            timeout=15
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result
+        else:
+             return {'error': [f"HTTP Error: {response.status_code}"], 'result': {}}
+             
+    except Exception as e:
+        return {'error': [str(e)], 'result': {}}
+
 def get_withdrawal_addresses(api_key: str, private_key: str) -> dict:
     common_assets = ['XBT', 'ETH', 'USDT', 'USDC', 'SOL', 'ADA', 'DOT', 'MATIC', 'XRP', 'LTC']
     
