@@ -42,49 +42,53 @@ def get_open_orders(api_key: str, private_key: str) -> dict:
 def get_withdrawal_addresses(api_key: str, private_key: str) -> dict:
     common_assets = ['XBT', 'ETH', 'USDT', 'USDC', 'SOL', 'ADA', 'DOT', 'MATIC', 'XRP', 'LTC']
     
-    all_addresses = []
+    urlpath = '/0/private/WithdrawAddresses'
+    nonce = str(int(time.time() * 1000))
     
-    for asset in common_assets:
-        try:
-            urlpath = '/0/private/WithdrawMethods'
-            nonce = str(int(time.time() * 1000))
-            data = {
-                'nonce': nonce,
-                'asset': asset
-            }
+    data = {
+        'nonce': nonce
+    }
 
-            signature = _get_kraken_signature(urlpath, data, private_key)
+    signature = _get_kraken_signature(urlpath, data, private_key)
 
-            headers = {
-                'API-Key': api_key,
-                'API-Sign': signature,
-            }
+    headers = {
+        'API-Key': api_key,
+        'API-Sign': signature,
+    }
 
-            response = requests.post(
-                KRAKEN_API_URL + urlpath,
-                headers=headers,
-                data=data,
-                timeout=15
-            )
+    try:
+        response = requests.post(
+            KRAKEN_API_URL + urlpath, 
+            headers=headers,
+            data=data,
+            timeout=15
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
             
-            if response.status_code == 200:
-                result = response.json()
-                if result.get('error') and len(result['error']) > 0:
-                    continue
-                    
-                methods = result.get('result', [])
-                for method in methods:
-                    all_addresses.append({
-                        'asset': asset,
-                        'method': method.get('method', ''),
-                        'address': method.get('address', method.get('method', '')),
-                        'limit': method.get('limit', '0'),
-                        'fee': method.get('fee', '0'),
-                    })
-        except:
-            continue
-    
-    return {'error': [], 'result': all_addresses}
+            if result.get('error'):
+                return result
+                
+            raw_addresses = result.get('result', [])
+            formatted_addresses = []
+            
+            for addr in raw_addresses:
+                formatted_addresses.append({
+                    'nickname_key': addr.get('key', ''),
+                    'address': addr.get('address', ''),
+                    'asset': addr.get('asset', ''),
+                    'method': addr.get('method', ''),
+                    'verified': addr.get('verified', False)
+                })
+                
+            return {'error': [], 'result': formatted_addresses}
+            
+        else:
+             return {'error': [f"HTTP Error: {response.status_code}"], 'result': []}
+             
+    except Exception as e:
+        return {'error': [str(e)], 'result': []}
 
 
 def get_closed_orders(api_key: str, private_key: str) -> dict:

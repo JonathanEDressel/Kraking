@@ -60,8 +60,9 @@ class WhitelistController {
       return `<tr>
         <td><span class="asset-badge">${this.escapeHtml(a.asset)}</span></td>
         <td class="address-cell">${this.escapeHtml(a.address)}</td>
-        <td>${limit}</td>
-        <td>${fee}</td>
+        <td class="address-cell">${this.escapeHtml(a.nickname_key)}</td>
+        <td>${a.method}</td>
+        <td>${a.verified}</td>
       </tr>`;
     }).join('');
   }
