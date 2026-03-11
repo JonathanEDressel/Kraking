@@ -80,7 +80,11 @@ class CommandsController {
     placeholder.textContent = 'Select an order...';
     select.appendChild(placeholder);
 
-    for (const o of orders) {
+    const ordersWithoutRules = orders.filter((o: any) => !this.ruleOrderIds.has(o.id));
+    const ordersWithRules = orders.filter((o: any) => this.ruleOrderIds.has(o.id));
+    const sortedOrders = [...ordersWithoutRules, ...ordersWithRules];
+
+    for (const o of sortedOrders) {
       const opt = document.createElement('option');
       opt.value = o.id;
       const pairDisplay = this.formatPair(o.pair);
