@@ -43,6 +43,7 @@ class HomeController {
 
     this.renderFromStore();
     this.loadCommands();
+    this.loadLogs();
   }
 
   private renderFromStore(): void {
@@ -54,6 +55,37 @@ class HomeController {
       this.renderOrders(orders);
       this.setCardValue('open-orders-count', orders.length.toString());
     }
+  }
+
+  private async loadLogs(): Promise<void> {
+    try {
+      const logs = await AutomationController.getLogs(30);
+      this.renderLogs(logs);
+    } catch (error: any) {
+    }
+  }
+
+  private renderLogs(logs: any[]): void {
+    const tbody = document.getElementById('logs-tbody');
+    if (!tbody) return;
+
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No execution history yet</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = logs.map((l: any) => {
+      const time = l.created_at ? new Date(l.created_at).toLocaleString() : '--';
+      const statusClass = l.status === 'success' ? 'log-success' : 'log-error';
+
+      return `<tr>
+        <td>${this.escapeHtml(time)}</td>
+        <td>${this.escapeHtml(l.trigger_event)}</td>
+        <td>${this.escapeHtml(l.action_executed)}</td>
+        <td class="result-cell">${this.escapeHtml(l.action_result)}</td>
+        <td><span class="log-status ${statusClass}">${this.escapeHtml(l.status)}</span></td>
+      </tr>`;
+    }).join('');
   }
 
   private renderOrders(orders: any[]): void {

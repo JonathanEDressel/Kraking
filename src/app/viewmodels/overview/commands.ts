@@ -82,7 +82,7 @@ class CommandsController {
 
     const ordersWithoutRules = orders.filter((o: any) => !this.ruleOrderIds.has(o.id));
     const ordersWithRules = orders.filter((o: any) => this.ruleOrderIds.has(o.id));
-    const sortedOrders = [...ordersWithoutRules, ...ordersWithRules];
+    const sortedOrders = [...ordersWithoutRules, ...ordersWithRules]; //not sure if I want to hide orders with rules or just mark them, for now I will just mark them with a checkmark in the dropdown
 
     for (const o of sortedOrders) {
       const opt = document.createElement('option');

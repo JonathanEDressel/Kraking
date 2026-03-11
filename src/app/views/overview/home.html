@@ -6,21 +6,21 @@
   </div>
 
   <div class="summary-cards">
-    <div class="summary-card">
+    <!-- <div class="summary-card">
       <div class="summary-icon"><i class="fa-solid fa-wallet"></i></div>
       <div class="summary-body">
         <span class="summary-label">Total Balance</span>
         <span class="summary-value" id="total-balance">--</span>
       </div>
-    </div>
+    </div> -->
 
-    <div class="summary-card">
+    <!-- <div class="summary-card">
       <div class="summary-icon"><i class="fa-solid fa-chart-line"></i></div>
       <div class="summary-body">
         <span class="summary-label">Open Positions</span>
         <span class="summary-value" id="open-positions-count">--</span>
       </div>
-    </div>
+    </div> -->
 
     <div class="summary-card">
       <div class="summary-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
@@ -109,6 +109,30 @@
         <tbody id="commands-tbody">
           <tr class="empty-row">
             <td colspan="4">Loading commands...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="overview-section">
+    <div class="section-header">
+      <h2 class="section-title">Execution Log</h2>
+    </div>
+    <div class="data-table-wrapper">
+      <table class="data-table" id="logs-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Trigger</th>
+            <th>Action</th>
+            <th>Result</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="logs-tbody">
+          <tr class="empty-row">
+            <td colspan="5">Loading logs...</td>
           </tr>
         </tbody>
       </table>
