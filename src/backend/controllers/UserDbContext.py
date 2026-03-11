@@ -7,7 +7,7 @@ class UserDbContext:
     @staticmethod
     def get_user_by_id(user_id: int) -> UserModel:
         row = execute_query_one(
-            'SELECT * FROM users WHERE id = %s',
+            'SELECT * FROM users WHERE id = ?',
             (user_id,)
         )
         return UserModel.from_row(row)
@@ -16,8 +16,8 @@ class UserDbContext:
     def update_kraken_keys(user_id: int, api_key_encrypted: str, private_key_encrypted: str) -> bool:
         execute_non_query(
             '''UPDATE users 
-               SET kraken_api_key_encrypted = %s, kraken_private_key_encrypted = %s
-               WHERE id = %s''',
+               SET kraken_api_key_encrypted = ?, kraken_private_key_encrypted = ?
+               WHERE id = ?''',
             (api_key_encrypted, private_key_encrypted, user_id)
         )
         return True
@@ -26,8 +26,8 @@ class UserDbContext:
     def update_password(user_id: int, password_hash: str) -> bool:
         execute_non_query(
             '''UPDATE users 
-               SET password_hash = %s
-               WHERE id = %s''',
+               SET password_hash = ?
+               WHERE id = ?''',
             (password_hash, user_id)
         )
         return True
@@ -36,8 +36,8 @@ class UserDbContext:
     def update_username(user_id: int, username: str) -> bool:
         execute_non_query(
             '''UPDATE users 
-               SET username = %s
-               WHERE id = %s''',
+               SET username = ?
+               WHERE id = ?''',
             (username, user_id)
         )
         return True
@@ -45,7 +45,7 @@ class UserDbContext:
     @staticmethod
     def delete_user(user_id: int) -> bool:
         execute_non_query(
-            'DELETE FROM users WHERE id = %s',
+            'DELETE FROM users WHERE id = ?',
             (user_id,)
         )
         return True

@@ -13,11 +13,7 @@ load_dotenv()
 def create_worker_app() -> Flask:
     app = Flask(__name__)
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-to-a-random-secret-key')
-    app.config['MYSQL_HOST'] = os.getenv('MYSQL_HOST', 'localhost')
-    app.config['MYSQL_PORT'] = int(os.getenv('MYSQL_PORT', 3306))
-    app.config['MYSQL_USER'] = os.getenv('MYSQL_USER', 'root')
-    app.config['MYSQL_PASSWORD'] = os.getenv('MYSQL_PASSWORD', '')
-    app.config['MYSQL_DATABASE'] = os.getenv('MYSQL_DATABASE', 'kraking_db')
+    app.config['DATABASE_PATH'] = os.getenv('DATABASE_PATH', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'kraking.db'))
     return app
 
 

@@ -6,3 +6,8 @@ dist/
 
 .env
 .vscode/
+
+*.sql
+*.db
+*.db-shm
+*.db-wal

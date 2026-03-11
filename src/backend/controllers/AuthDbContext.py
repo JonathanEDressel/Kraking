@@ -7,7 +7,7 @@ class AuthDbContext:
     @staticmethod
     def get_user_by_username(username: str) -> UserModel:
         row = execute_query_one(
-            'SELECT * FROM users WHERE username = %s',
+            'SELECT * FROM users WHERE username = ?',
             (username,)
         )
         return UserModel.from_row(row)
@@ -17,12 +17,12 @@ class AuthDbContext:
                     kraken_api_key_encrypted: str, kraken_private_key_encrypted: str) -> UserModel:
         user_id = execute_insert(
             '''INSERT INTO users (username, password_hash, kraken_api_key_encrypted, kraken_private_key_encrypted)
-               VALUES (%s, %s, %s, %s)''',
+               VALUES (?, ?, ?, ?)''',
             (username, password_hash, kraken_api_key_encrypted, kraken_private_key_encrypted)
         )
         
         row = execute_query_one(
-            'SELECT * FROM users WHERE id = %s',
+            'SELECT * FROM users WHERE id = ?',
             (user_id,)
         )
         return UserModel.from_row(row)
@@ -30,14 +30,14 @@ class AuthDbContext:
     @staticmethod
     def update_last_login(user_id: int) -> None:
         execute_non_query(
-            'UPDATE users SET last_login = NOW() WHERE id = %s',
+            "UPDATE users SET last_login = datetime('now') WHERE id = ?",
             (user_id,)
         )
     
     @staticmethod
     def username_exists(username: str) -> bool:
         result = execute_scalar(
-            'SELECT 1 FROM users WHERE username = %s',
+            'SELECT 1 FROM users WHERE username = ?',
             (username,)
         )
         return result is not None
