@@ -95,17 +95,12 @@ function createWindow() {
     }
   });
 
-  // In production, index.html is in src/ directory relative to resources
-  // In development, index.html is in src/ directory
-  const isDev = !app.isPackaged;
-  const indexPath = isDev 
-    ? path.join(__dirname, '../index.html')
-    : path.join(__dirname, '../src/index.html');
+  const indexPath = path.join(__dirname, '../src/index.html');
 
   mainWindow.loadFile(indexPath);
   
-  // Open DevTools to see backend logs (helpful for debugging)
-  if (!isDev) {
+  const isDev = !app.isPackaged;
+  if (isDev) {
     mainWindow.webContents.openDevTools();
   }
 

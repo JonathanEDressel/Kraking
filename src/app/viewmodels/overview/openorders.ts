@@ -105,8 +105,8 @@ class OpenOrdersController {
   }
 
   private normalizeBase(base: string): string {
-    if (base === 'XBT') return 'BTC';
-    if (base === 'XDG') return 'DOGE';
+    if (base === 'XBT' || base === 'XXBT') return 'BTC';
+    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
     return base;
   }
 

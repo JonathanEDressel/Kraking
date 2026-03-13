@@ -58,7 +58,7 @@ class WhitelistController {
         : 'No fee';
       
       return `<tr>
-        <td><span class="asset-badge">${this.escapeHtml(a.asset)}</span></td>
+        <td><span class="asset-badge">${this.escapeHtml(this.normalizeBase(a.asset))}</span></td>
         <td class="address-cell">${this.escapeHtml(a.address)}</td>
         <td class="address-cell">${this.escapeHtml(a.nickname_key)}</td>
         <td>${a.method}</td>
@@ -99,6 +99,12 @@ class WhitelistController {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+  }
+
+  private normalizeBase(base: string): string {
+    if (base === 'XBT' || base === 'XXBT') return 'BTC';
+    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
+    return base;
   }
 }
 

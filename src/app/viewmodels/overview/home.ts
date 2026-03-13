@@ -152,8 +152,8 @@ class HomeController {
   }
 
   private normalizeBase(base: string): string {
-    if (base === 'XBT') return 'BTC';
-    if (base === 'XDG') return 'DOGE';
+    if (base === 'XBT' || base === 'XXBT') return 'BTC';
+    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
     return base;
   }
 
@@ -184,7 +184,7 @@ class HomeController {
         : 'Any';
       const trigger = `<span class="trigger-badge">Order Filled</span> <span class="mono-text">${orderId}</span>`;
       const action = r.action_type === 'withdraw_crypto'
-        ? `Withdraw <strong>${this.escapeHtml(r.action_amount)}</strong> <span class="asset-badge">${this.escapeHtml(r.action_asset)}</span>`
+        ? `Withdraw <strong>${this.escapeHtml(r.action_amount)}</strong> <span class="asset-badge">${this.escapeHtml(this.normalizeBase(r.action_asset))}</span>`
         : this.escapeHtml(r.action_type);
 
       return `<tr>

@@ -55,6 +55,10 @@ class CommandsController {
       this.updateSliderFromAmount();
     });
 
+    document.getElementById('trigger-asset')?.addEventListener('change', () => {
+      this.onTriggerAssetChanged();
+    });
+
     document.getElementById('rules-tbody')?.addEventListener('click', (e) => {
       const target = (e.target as HTMLElement).closest('[data-action]') as HTMLElement | null;
       if (!target) return;
@@ -113,7 +117,10 @@ class CommandsController {
     if (previousValue && orders.some((o: any) => o.id === previousValue)) {
       select.value = previousValue;
     } else {
-      this.resetDependentFields();
+      const triggerType = (document.getElementById('trigger-type') as HTMLSelectElement)?.value;
+      if (triggerType === 'order_filled') {
+        this.resetDependentFields();
+      }
     }
   }
 
@@ -203,21 +210,37 @@ class CommandsController {
     const amountModeSection = document.getElementById('amount-mode-section');
 
     if (triggerType === 'balance_threshold') {
-      // Show balance fields, hide order fields
       orderSection?.classList.add('d-none');
       balanceSections.forEach(el => el.classList.remove('d-none'));
       amountModeSection?.classList.add('d-none');
 
-      this.resetDependentFields();
+      this.selectedOrder = null;
+      this.maxAmount = 0;
+
+      const assetSelect = document.getElementById('action-asset') as HTMLSelectElement;
+      if (assetSelect) {
+        assetSelect.innerHTML = '<option value="" disabled selected>Select a trigger asset first</option>';
+        assetSelect.disabled = true;
+      }
+
+      this.populateAddressDropdown();
       this.loadBalances();
 
-      // For balance_threshold, auto-set asset from trigger-asset selection
-      const assetSelect = document.getElementById('action-asset') as HTMLSelectElement;
-      assetSelect.innerHTML = '<option value="" disabled selected>Select a trigger asset first</option>';
-      assetSelect.disabled = true;
+      const amountInput = document.getElementById('action-amount') as HTMLInputElement;
+      if (amountInput) {
+        amountInput.disabled = true;
+        amountInput.removeAttribute('max');
+        amountInput.removeAttribute('required');
+        amountInput.placeholder = 'Full balance (auto)';
+        amountInput.value = '';
+      }
 
-      // Enable address dropdown
-      this.populateAddressDropdown();
+      const hint = document.getElementById('amount-hint');
+      if (hint) hint.textContent = '';
+
+      document.querySelectorAll('input[name="amount-mode"]').forEach((r) => {
+        (r as HTMLInputElement).disabled = false;
+      });
     } else {
       // Show order fields, hide balance fields
       orderSection?.classList.remove('d-none');
@@ -265,11 +288,6 @@ class CommandsController {
       }
 
       thresholdInput.disabled = false;
-
-      // When trigger-asset changes, auto-set action-asset
-      triggerAssetSelect.addEventListener('change', () => {
-        this.onTriggerAssetChanged();
-      });
     } catch {
       triggerAssetSelect.innerHTML = '<option value="" disabled selected>Failed to load balances</option>';
       triggerAssetSelect.disabled = true;
@@ -278,10 +296,18 @@ class CommandsController {
   }
 
   private onTriggerAssetChanged(): void {
+    const triggerType = (document.getElementById('trigger-type') as HTMLSelectElement)?.value;
+    if (triggerType !== 'balance_threshold') return;
+
     const triggerAssetSelect = document.getElementById('trigger-asset') as HTMLSelectElement;
+    if (!triggerAssetSelect) return;
+    
     const selectedAsset = triggerAssetSelect.value;
+    if (!selectedAsset) return;
 
     const assetSelect = document.getElementById('action-asset') as HTMLSelectElement;
+    if (!assetSelect) return;
+
     assetSelect.innerHTML = '';
     assetSelect.disabled = false;
 
@@ -291,7 +317,6 @@ class CommandsController {
     opt.selected = true;
     assetSelect.appendChild(opt);
 
-    // Update threshold hint
     const balance = this.balances[selectedAsset];
     const thresholdHint = document.getElementById('threshold-hint');
     if (thresholdHint && balance) {
@@ -449,8 +474,8 @@ class CommandsController {
   }
 
   private normalizeBase(base: string): string {
-    if (base === 'XBT') return 'BTC';
-    if (base === 'XDG') return 'DOGE';
+    if (base === 'XBT' || base === 'XXBT') return 'BTC';
+    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
     return base;
   }
 
@@ -641,7 +666,7 @@ class CommandsController {
         amountText = `<strong>${this.escapeHtml(rule.action_amount)}</strong>`;
       }
       return `Withdraw ${amountText} `
-        + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
+        + `<span class="asset-badge">${this.escapeHtml(this.normalizeBase(rule.action_asset))}</span> `
         + `→ ${this.escapeHtml(rule.action_address_key)}`;
     }
     return this.escapeHtml(rule.action_type);
