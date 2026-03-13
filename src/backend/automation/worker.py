@@ -209,11 +209,29 @@ class AutomationWorker:
     
     def _execute_rule(self, rule, user, api_key: str, private_key: str,
                       order_id: str, snapshot: dict, AutomationDbContext):
+        from helper.KrakenClient import get_minimum_withdrawal
         trigger_event = f"Order {order_id} filled ({snapshot.get('pair', '')} {snapshot.get('side', '')})"
         
         try:
             if rule.action_type == 'withdraw_crypto':
                 withdraw_amount = self._resolve_amount(rule, snapshot)
+
+                # Check minimum withdrawal (with cushion) before attempting
+                min_withdrawal = get_minimum_withdrawal(rule.action_asset)
+                if min_withdrawal > 0 and float(withdraw_amount) < min_withdrawal:
+                    skip_msg = (f"Amount {withdraw_amount} {rule.action_asset} is below minimum "
+                                f"withdrawal of {min_withdrawal} (skipped)")
+                    print(f"[WORKER] {skip_msg}")
+                    AutomationDbContext.create_log(
+                        rule_id=rule.id,
+                        user_id=rule.user_id,
+                        trigger_event=trigger_event,
+                        action_executed=f"Withdraw {withdraw_amount} {rule.action_asset} to {rule.action_address_key}",
+                        action_result=skip_msg,
+                        status='skipped',
+                    )
+                    return
+
                 result = self._execute_withdraw(api_key, private_key, rule, withdraw_amount)
                 
                 amount_note = " (filled amount)" if rule.use_filled_amount else ""

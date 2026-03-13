@@ -44,6 +44,7 @@ class AuthController {
    */
   static logout(): void {
     KrakenStore.stop();
+    NotificationService.stop();
     ApiKeyState.reset();
     localStorage.removeItem(AppConfig.TOKEN_KEY);
     localStorage.removeItem(AppConfig.USER_KEY);

@@ -10,19 +10,18 @@ KRAKEN_API_URL = 'https://api.kraken.com'
 
 # Minimum withdrawal amounts enforced by Kraken (in asset units)
 # Source: https://support.kraken.com/articles/360000767986-cryptocurrency-withdrawal-fees-and-minimums
-# Last updated: March 12, 2026
+# Last updated: March 13, 2026
 MINIMUM_WITHDRAWALS = {
     # Major cryptocurrencies
     'XBT': 0.00022,         # Bitcoin
-    'ETH': 0.00017,         # Ethereum
+    'ETH': 0.00022,         # Ethereum
     'SOL': 0.011,           # Solana
     'ADA': 5,               # Cardano
     'DOT': 1,               # Polkadot
-    'MATIC': 7,             # Polygon (also listed as POL)
-    'POL': 7,               # Polygon (new ticker)
+    'POL': 7,               # Polygon
     'AVAX': 0.50,           # Avalanche
     'ATOM': 1.00,           # Cosmos
-    'LINK': 0.045,          # Chainlink
+    'LINK': 0.060,          # Chainlink
     
     # Altcoins
     'XRP': 12,              # Ripple
@@ -31,7 +30,7 @@ MINIMUM_WITHDRAWALS = {
     'BCH': 0.00060,         # Bitcoin Cash
     'ETC': 0.014,           # Ethereum Classic
     'DOGE': 50,             # Dogecoin
-    'SHIB': 104441,         # Shiba Inu
+    'SHIB': 135799,         # Shiba Inu
     'TRX': 20,              # Tron
     'ALGO': 1.00,           # Algorand
     'FIL': 0.100,           # Filecoin
@@ -39,41 +38,44 @@ MINIMUM_WITHDRAWALS = {
     'LUNA': 50000,          # Terra Classic
     
     # Stablecoins (Ethereum network - minimums vary by network)
-    'USDT': 0.64,           # Tether (Ethereum)
-    'USDC': 0.65,           # USD Coin (Ethereum)
-    'DAI': 0.53,            # Dai (Ethereum)
-    'BUSD': 0.65,           # Binance USD (estimated, not in current list)
+    'USDT': 0.86,           # Tether (Ethereum)
+    'USDC': 0.87,           # USD Coin (Ethereum)
+    'DAI': 0.72,            # Dai (Ethereum)
     
     # DeFi tokens
-    'UNI': 0.17,            # Uniswap
-    'AAVE': 0.0065,         # Aave
+    'UNI': 0.23,            # Uniswap
+    'AAVE': 0.0086,         # Aave
     'CRV': 2,               # Curve DAO Token
-    'SNX': 4,               # Synthetix
-    'COMP': 0.036,          # Compound
-    'SUSHI': 3,             # Sushi
-    'YFI': 0.00024,         # Yearn Finance
-    'MKR': 0.001,           # Maker (estimated, not in current list)
-    '1INCH': 4,             # 1inch
-    'BAL': 5,               # Balancer
-    'LDO': 1,               # LIDO DAO
+    'SNX': 6,               # Synthetix
+    'COMP': 0.050,          # Compound
+    'SUSHI': 4,             # Sushi
+    'YFI': 0.00032,         # Yearn Finance
+    '1INCH': 6,             # 1inch
+    'BAL': 6,               # Balancer
+    'LDO': 2,               # LIDO DAO
     
     # Gaming & Metaverse
-    'APE': 6,               # ApeCoin
-    'SAND': 5,              # Sandbox
-    'MANA': 7,              # Decentraland
-    'GALA': 216,            # Gala Games
-    'AXS': 0.53,            # Axie Infinity Shards
+    'APE': 8,               # ApeCoin
+    'SAND': 6,              # Sandbox
+    'MANA': 9,              # Decentraland
+    'GALA': 295,            # Gala Games
+    'AXS': 0.70,            # Axie Infinity Shards
     'ENJ': 8,               # Enjin
     
     # Other popular tokens
-    'GRT': 23,              # The Graph
+    'GRT': 29,              # The Graph
     'FET': 6,               # Fetch.ai
-    'RNDR': 0.42,           # Render (listed as RENDER)
+    'RENDER': 0.38,         # Render
 }
+
+# Cushion multiplier applied to minimums to avoid exact-boundary rejections
+MINIMUM_WITHDRAWAL_CUSHION = 1.10
 
 
 def get_minimum_withdrawal(asset: str) -> float:
-    return MINIMUM_WITHDRAWALS.get(asset, 0)
+    """Return the minimum withdrawal for an asset with a 10% safety cushion."""
+    base = MINIMUM_WITHDRAWALS.get(asset, 0)
+    return base * MINIMUM_WITHDRAWAL_CUSHION if base > 0 else 0
 
 
 def _get_kraken_signature(urlpath: str, data: dict, secret: str) -> str:

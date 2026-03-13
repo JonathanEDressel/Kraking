@@ -6,6 +6,7 @@ class CommandsController {
   private maxAmount: number = 0;
   private ruleOrderIds: Set<string> = new Set();
   private balances: Record<string, string> = {};
+  private withdrawalMinimums: Record<string, number> = {};
 
   constructor() {
     this.init();
@@ -16,6 +17,7 @@ class CommandsController {
     this.populateOrderDropdown();
     this.loadRules();
     this.loadLogs();
+    this.loadWithdrawalMinimums();
 
     this.unsubscribe = KrakenStore.onUpdate(() => this.populateOrderDropdown());
 
@@ -49,14 +51,42 @@ class CommandsController {
 
     document.getElementById('amount-slider')?.addEventListener('input', (e) => {
       this.onSliderChanged((e.target as HTMLInputElement).value);
+      this.validateAmountLive();
+      this.updateRuleSummary();
     });
 
     document.getElementById('action-amount')?.addEventListener('input', () => {
       this.updateSliderFromAmount();
+      this.validateAmountLive();
+      this.updateRuleSummary();
     });
 
     document.getElementById('trigger-asset')?.addEventListener('change', () => {
       this.onTriggerAssetChanged();
+    });
+
+    document.getElementById('rule-name')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('action-address-key')?.addEventListener('change', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('trigger-threshold')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('cooldown-hours')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('cooldown-minutes')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('action-amount')?.addEventListener('input', () => {
+      this.updateRuleSummary();
     });
 
     document.getElementById('rules-tbody')?.addEventListener('click', (e) => {
@@ -160,6 +190,19 @@ class CommandsController {
 
     this.populateAddressDropdown();
 
+    // Show minimum withdrawal hint
+    this.updateMinWithdrawalHint(receivedAsset);
+
+    // Check if max amount is below the minimum withdrawal
+    const minWithdrawal = this.getMinForAsset(receivedAsset);
+    if (minWithdrawal > 0 && this.maxAmount < minWithdrawal) {
+      this.showMinWarning(`Maximum possible amount (${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}) is below the minimum withdrawal of ${this.formatMin(minWithdrawal)} ${this.normalizeBase(receivedAsset)}`);
+      this.setCreateButtonEnabled(false);
+    } else {
+      this.clearMinWarning();
+      this.setCreateButtonEnabled(true);
+    }
+
     // Enable amount mode radios
     document.querySelectorAll('input[name="amount-mode"]').forEach((r) => {
       (r as HTMLInputElement).disabled = false;
@@ -168,6 +211,8 @@ class CommandsController {
 
     const hint = document.getElementById('amount-hint');
     if (hint) hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}`;
+
+    this.updateRuleSummary();
   }
 
   private populateAddressDropdown(): void {
@@ -261,6 +306,8 @@ class CommandsController {
         thresholdInput.value = '';
       }
     }
+
+    this.updateRuleSummary();
   }
 
   private async loadBalances(): Promise<void> {
@@ -322,6 +369,11 @@ class CommandsController {
     if (thresholdHint && balance) {
       thresholdHint.textContent = `Current balance: ${parseFloat(balance).toFixed(8)} ${this.normalizeBase(selectedAsset)}`;
     }
+
+    // Show minimum withdrawal hint for balance threshold
+    this.updateMinWithdrawalHint(selectedAsset);
+
+    this.updateRuleSummary();
   }
 
   private onAmountModeChanged(): void {
@@ -341,33 +393,56 @@ class CommandsController {
       amountInput.removeAttribute('required');
       slider.disabled = true;
       if (hint && this.selectedOrder) {
-        const { base } = this.parsePair(this.selectedOrder.pair);
-        hint.textContent = `Est. max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(base)}`;
+        const { base, quote } = this.parsePair(this.selectedOrder.pair);
+        const receivedAsset = this.selectedOrder.side === 'sell' ? quote : base;
+        hint.textContent = `Est. max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}`;
       }
       if (modeHint) modeHint.textContent = 'Withdraws the actual filled amount when the order completes';
     } else {
       if (this.selectedOrder) {
+        const actionAsset = (document.getElementById('action-asset') as HTMLSelectElement)?.value || '';
+        const minW = this.getMinForAsset(actionAsset);
         amountInput.disabled = false;
         amountInput.max = this.maxAmount.toString();
+        if (minW > 0) {
+          amountInput.min = minW.toString();
+        } else {
+          amountInput.removeAttribute('min');
+        }
         amountInput.placeholder = `Max: ${this.maxAmount.toFixed(6)}`;
         amountInput.setAttribute('required', '');
         slider.disabled = false;
         slider.value = '100';
         this.onSliderChanged('100');
         if (hint) {
-          const { base } = this.parsePair(this.selectedOrder.pair);
-          hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(base)}`;
+          const { base, quote } = this.parsePair(this.selectedOrder.pair);
+          const receivedAsset = this.selectedOrder.side === 'sell' ? quote : base;
+          hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}`;
         }
       }
       if (modeHint) modeHint.textContent = '';
     }
+
+    this.updateRuleSummary();
   }
 
   private onSliderChanged(value: string): void {
-    const percentage = parseInt(value, 10);
+    let percentage = parseInt(value, 10);
     const sliderValueEl = document.getElementById('slider-value');
     const amountInput = document.getElementById('action-amount') as HTMLInputElement;
-    
+    const slider = document.getElementById('amount-slider') as HTMLInputElement;
+
+    // Clamp slider so the resulting amount can't go below minimum
+    const actionAsset = (document.getElementById('action-asset') as HTMLSelectElement)?.value || '';
+    const minW = this.getMinForAsset(actionAsset);
+    if (minW > 0 && this.maxAmount > 0) {
+      const minPct = Math.ceil((minW / this.maxAmount) * 100);
+      if (percentage < minPct && percentage !== 0) {
+        percentage = minPct;
+        if (slider) slider.value = percentage.toString();
+      }
+    }
+
     if (sliderValueEl) sliderValueEl.textContent = `${percentage}%`;
     
     if (this.maxAmount > 0 && !amountInput.disabled) {
@@ -559,6 +634,13 @@ class CommandsController {
             this.showError('Withdrawal amount must be worth at least $1 USD');
             return;
           }
+        }
+
+        // Validate against Kraken minimum withdrawal (with cushion)
+        const minWithdrawal = this.getMinForAsset(actionAsset);
+        if (minWithdrawal > 0 && amount < minWithdrawal) {
+          this.showError(`Amount ${amount} is below the minimum withdrawal of ${minWithdrawal.toFixed(6)} ${this.normalizeBase(actionAsset)} (includes buffer)`);
+          return;
         }
       }
 
@@ -805,6 +887,153 @@ class CommandsController {
     
     // For buy orders, amount is in base currency (crypto), multiply by price
     return amount * price;
+  }
+
+  private async loadWithdrawalMinimums(): Promise<void> {
+    try {
+      this.withdrawalMinimums = await AutomationController.getWithdrawalMinimums();
+    } catch {
+      this.withdrawalMinimums = {};
+    }
+  }
+
+  private getMinForAsset(asset: string): number {
+    if (!asset) return 0;
+    // Try exact match, then try stripping X/Z prefix (Kraken balance prefixes)
+    if (this.withdrawalMinimums[asset]) return this.withdrawalMinimums[asset];
+    if (asset.length > 3 && asset.startsWith('X')) {
+      const stripped = asset.substring(1);
+      if (this.withdrawalMinimums[stripped]) return this.withdrawalMinimums[stripped];
+    }
+    if (asset.length > 3 && asset.startsWith('Z')) {
+      const stripped = asset.substring(1);
+      if (this.withdrawalMinimums[stripped]) return this.withdrawalMinimums[stripped];
+    }
+    return 0;
+  }
+
+  private updateMinWithdrawalHint(asset: string): void {
+    const hint = document.getElementById('min-withdrawal-hint');
+    if (!hint) return;
+    const min = this.getMinForAsset(asset);
+    if (min > 0) {
+      hint.textContent = `Min withdrawal: ${this.formatMin(min)} ${this.normalizeBase(asset)} (incl. buffer)`;
+    } else {
+      hint.textContent = '';
+    }
+  }
+
+  private formatMin(value: number): string {
+    return value.toFixed(6).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  private validateAmountLive(): void {
+    const amountInput = document.getElementById('action-amount') as HTMLInputElement;
+    if (!amountInput || amountInput.disabled) return;
+
+    const actionAsset = (document.getElementById('action-asset') as HTMLSelectElement)?.value || '';
+    const minW = this.getMinForAsset(actionAsset);
+    if (minW <= 0) {
+      this.clearMinWarning();
+      this.setCreateButtonEnabled(true);
+      return;
+    }
+
+    const amount = parseFloat(amountInput.value);
+    if (!isNaN(amount) && amount < minW) {
+      this.showMinWarning(`Amount ${amount} is below the minimum withdrawal of ${this.formatMin(minW)} ${this.normalizeBase(actionAsset)}`);
+      this.setCreateButtonEnabled(false);
+    } else {
+      this.clearMinWarning();
+      this.setCreateButtonEnabled(true);
+    }
+  }
+
+  private showMinWarning(message: string): void {
+    const hint = document.getElementById('min-withdrawal-hint');
+    if (hint) {
+      hint.textContent = message;
+      hint.classList.add('min-warning');
+    }
+  }
+
+  private clearMinWarning(): void {
+    const hint = document.getElementById('min-withdrawal-hint');
+    if (hint) {
+      hint.classList.remove('min-warning');
+      // Restore the standard hint if an asset is selected
+      const actionAsset = (document.getElementById('action-asset') as HTMLSelectElement)?.value || '';
+      if (actionAsset) {
+        this.updateMinWithdrawalHint(actionAsset);
+      }
+    }
+  }
+
+  private setCreateButtonEnabled(enabled: boolean): void {
+    const btn = document.getElementById('create-rule-btn') as HTMLButtonElement;
+    if (btn) btn.disabled = !enabled;
+  }
+
+  private updateRuleSummary(): void {
+    const summaryContainer = document.getElementById('rule-summary');
+    const summaryText = document.getElementById('rule-summary-text');
+    if (!summaryContainer || !summaryText) return;
+
+    const triggerType = (document.getElementById('trigger-type') as HTMLSelectElement)?.value;
+    const addressKey = (document.getElementById('action-address-key') as HTMLSelectElement)?.value;
+
+    // Hide summary if no address selected (minimum required field for both modes)
+    if (!addressKey) {
+      summaryContainer.classList.add('d-none');
+      return;
+    }
+
+    let summary = '';
+
+    if (triggerType === 'balance_threshold') {
+      const triggerAsset = (document.getElementById('trigger-asset') as HTMLSelectElement)?.value;
+      const threshold = (document.getElementById('trigger-threshold') as HTMLInputElement)?.value;
+      const cooldownHours = parseInt((document.getElementById('cooldown-hours') as HTMLInputElement)?.value || '0', 10);
+      const cooldownMins = parseInt((document.getElementById('cooldown-minutes') as HTMLInputElement)?.value || '0', 10);
+      const totalCooldown = (cooldownHours * 60) + cooldownMins;
+
+      if (!triggerAsset || !threshold) {
+        summaryContainer.classList.add('d-none');
+        return;
+      }
+
+      const assetDisplay = this.normalizeBase(triggerAsset);
+      const cooldownDisplay = this.formatCooldown(totalCooldown);
+      
+      summary = `When ${assetDisplay} balance reaches ${parseFloat(threshold).toFixed(8).replace(/\.?0+$/, '')}, wait ${cooldownDisplay}, then withdraw full balance to ${addressKey}`;
+    } else {
+      // order_filled
+      const orderId = (document.getElementById('trigger-order-id') as HTMLSelectElement)?.value;
+      const actionAsset = (document.getElementById('action-asset') as HTMLSelectElement)?.value;
+      const amountMode = (document.querySelector('input[name="amount-mode"]:checked') as HTMLInputElement)?.value;
+      const amount = (document.getElementById('action-amount') as HTMLInputElement)?.value;
+
+      if (!orderId || !actionAsset) {
+        summaryContainer.classList.add('d-none');
+        return;
+      }
+
+      const orderIdShort = orderId.substring(0, 10) + '...';
+      const assetDisplay = this.normalizeBase(actionAsset);
+
+      if (amountMode === 'filled') {
+        summary = `When order ${orderIdShort} fills, withdraw filled amount of ${assetDisplay} to ${addressKey}`;
+      } else {
+        let amountDisplay = '___';
+        if (amount && parseFloat(amount) > 0) {
+          amountDisplay = parseFloat(amount).toFixed(8).replace(/\.?0+$/, '');
+        }
+        summary = `When order ${orderIdShort} fills, withdraw ${amountDisplay} ${assetDisplay} to ${addressKey}`;
+      }
+    }
+
+    summaryText.textContent = summary;
+    summaryContainer.classList.remove('d-none');
   }
 }
 

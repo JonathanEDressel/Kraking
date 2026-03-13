@@ -69,6 +69,7 @@
     UserController.refreshKeyStatus().then(() => {
       if (ApiKeyState.status === 'valid') {
         KrakenStore.start();
+        NotificationService.start();
       }
     });
     router.navigate('home');

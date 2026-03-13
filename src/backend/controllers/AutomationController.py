@@ -3,6 +3,7 @@ from controllers.AutomationDbContext import AutomationDbContext
 from helper.Security import token_required
 from helper.ErrorHandler import handle_error, bad_request, not_found
 from helper.Helper import success_response, created_response
+from helper.KrakenClient import get_minimum_withdrawal, MINIMUM_WITHDRAWALS, MINIMUM_WITHDRAWAL_CUSHION
 
 automation_bp = Blueprint('automation', __name__)
 
@@ -87,6 +88,19 @@ def create_rule():
             elif not use_filled_amount and not action_amount:
                 return bad_request("Amount is required for withdraw action (or enable 'Use Filled Amount')")
 
+            # Validate fixed amount against minimum withdrawal (with cushion)
+            if not use_filled_amount and action_amount and trigger_type != 'balance_threshold':
+                try:
+                    amount_val = float(action_amount)
+                    min_withdrawal = get_minimum_withdrawal(action_asset)
+                    if min_withdrawal > 0 and amount_val < min_withdrawal:
+                        return bad_request(
+                            f"Amount {amount_val} is below the minimum withdrawal of "
+                            f"{min_withdrawal:.6g} {action_asset} (includes 10% buffer)"
+                        )
+                except (ValueError, TypeError):
+                    pass
+
         rule_id = AutomationDbContext.create_rule(
             user_id=request.user_id,
             rule_name=rule_name,
@@ -152,6 +166,16 @@ def delete_rule(rule_id):
         AutomationDbContext.delete_rule(rule_id, request.user_id)
         return success_response(message="Rule deleted")
 
+    except Exception as e:
+        return handle_error(e)
+
+
+@automation_bp.route('/withdrawal-minimums', methods=['GET'])
+@token_required
+def get_withdrawal_minimums():
+    try:
+        minimums = {asset: get_minimum_withdrawal(asset) for asset in MINIMUM_WITHDRAWALS}
+        return success_response(data=minimums)
     except Exception as e:
         return handle_error(e)
 

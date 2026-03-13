@@ -104,6 +104,7 @@ class LoginController {
 
       ApiKeyWarning.init();
       KrakenStore.start();
+      NotificationService.start();
       router.navigate('home');
 
     } catch (error: any) {

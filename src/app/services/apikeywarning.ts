@@ -21,6 +21,7 @@ class ApiKeyWarning {
         ApiKeyWarning.dismissed = false;
         // Keys just became valid — start KrakenStore if it wasn't running
         KrakenStore.start();
+        NotificationService.start();
       }
       return;
     }

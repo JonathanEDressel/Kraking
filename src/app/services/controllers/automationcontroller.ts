@@ -31,4 +31,11 @@ class AutomationController {
     const response = await AutomationData.getLogs(token, limit);
     return response.data;
   }
+
+  static async getWithdrawalMinimums(): Promise<Record<string, number>> {
+    const token = AuthController.getToken();
+    if (!token) throw new Error('Not authenticated');
+    const response = await AutomationData.getWithdrawalMinimums(token);
+    return response.data;
+  }
 }
