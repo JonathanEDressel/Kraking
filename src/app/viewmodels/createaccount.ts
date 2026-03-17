@@ -1,13 +1,9 @@
 (function() {
 
-// Create account view model
-// Dependencies loaded via index.html: AppConfig, DataAccess, AuthData, AuthController, Router
 class CreateAccountController {
   private username: string = "";
   private password: string = "";
   private confirmPassword: string = "";
-  private krakenApiKey: string = "";
-  private krakenPrivateKey: string = "";
   private ErrorMsg: string = "";
   private SuccessMsg: string = "";
 
@@ -30,14 +26,7 @@ class CreateAccountController {
     confirmPasswordInput?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') this.createAccount();
     });
-
-    const krakenPrivateKeyInput = document.getElementById('krakenPrivateKey') as HTMLInputElement;
-    krakenPrivateKeyInput?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') this.createAccount();
-    });
   }
-
-  // ---- UI helpers ----
 
   private setErrorMsg(msg: string): void {
     this.ErrorMsg = msg;
@@ -69,26 +58,18 @@ class CreateAccountController {
     }
   }
 
-  // ---- Navigation (uses router) ----
-
   returnToLogin(): void {
     router.navigate('login');
   }
-
-  // ---- Validation ----
 
   private validateForm(): boolean {
     const usernameInput = document.getElementById('username') as HTMLInputElement;
     const passwordInput = document.getElementById('password') as HTMLInputElement;
     const confirmPasswordInput = document.getElementById('confirmPassword') as HTMLInputElement;
-    const krakenApiKeyInput = document.getElementById('krakenApiKey') as HTMLInputElement;
-    const krakenPrivateKeyInput = document.getElementById('krakenPrivateKey') as HTMLInputElement;
 
     this.username = usernameInput.value.trim();
     this.password = passwordInput.value;
     this.confirmPassword = confirmPasswordInput.value;
-    this.krakenApiKey = krakenApiKeyInput.value.trim();
-    this.krakenPrivateKey = krakenPrivateKeyInput.value.trim();
 
     if (!this.username) {
       this.setErrorMsg("Please enter a username");
@@ -102,16 +83,6 @@ class CreateAccountController {
 
     if (this.password !== this.confirmPassword) {
       this.setErrorMsg("Passwords do not match");
-      return false;
-    }
-
-    if (!this.krakenApiKey) {
-      this.setErrorMsg("Please enter your Kraken API key");
-      return false;
-    }
-
-    if (!this.krakenPrivateKey) {
-      this.setErrorMsg("Please enter your Kraken private key");
       return false;
     }
 
@@ -139,9 +110,7 @@ class CreateAccountController {
     try {
       await AuthController.register(
         this.username,
-        this.password,
-        this.krakenApiKey,
-        this.krakenPrivateKey
+        this.password
       );
 
       this.setSuccessMsg('Account created successfully! Redirecting to login...');

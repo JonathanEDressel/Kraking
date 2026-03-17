@@ -1,12 +1,22 @@
+interface ExchangeConnection {
+  id: number;
+  exchange_name: string;
+  label: string;
+  is_validated: boolean;
+  is_sandbox: boolean;
+  keys_last_validated: string | null;
+  created_at: string;
+}
+
 interface UserModel {
   id: number;
   username: string;
   created_at: string;
   updated_at: string;
   last_login: string;
-  has_keys: boolean;
-  keys_validated: boolean;
-  keys_last_validated: string | null;
+  notifications_enabled: boolean;
+  exchange_connections: ExchangeConnection[];
+  has_validated_connection: boolean;
 }
 
 interface LoginResponse {
@@ -17,8 +27,6 @@ interface LoginResponse {
 interface RegisterRequest {
   username: string;
   password: string;
-  krakenApiKey: string;
-  krakenPrivateKey: string;
 }
 
 interface LoginRequest {

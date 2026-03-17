@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from controllers.AuthDbContext import AuthDbContext
-from helper.Security import hash_password, verify_password, generate_token, encrypt_api_key
+from controllers.ExchangeConnectionDbContext import ExchangeConnectionDbContext
+from helper.Security import hash_password, verify_password, generate_token
 from helper.ErrorHandler import handle_error, bad_request
 from helper.Helper import success_response, created_response
 
@@ -17,8 +18,6 @@ def register():
         
         username = data.get('username', '').strip()
         password = data.get('password', '')
-        kraken_api_key = data.get('krakenApiKey', '').strip()
-        kraken_private_key = data.get('krakenPrivateKey', '').strip()
         
         if not username:
             return bad_request("Username is required")
@@ -29,25 +28,14 @@ def register():
         if not password or len(password) < 6:
             return bad_request("Password must be at least 6 characters")
         
-        if not kraken_api_key:
-            return bad_request("Kraken API key is required")
-        
-        if not kraken_private_key:
-            return bad_request("Kraken private key is required")
-        
         if AuthDbContext.username_exists(username):
             return bad_request("Username already exists")
         
         password_hashed = hash_password(password)
         
-        api_key_encrypted = encrypt_api_key(kraken_api_key)
-        private_key_encrypted = encrypt_api_key(kraken_private_key)
-        
         user = AuthDbContext.create_user(
             username=username,
             password_hash=password_hashed,
-            kraken_api_key_encrypted=api_key_encrypted,
-            kraken_private_key_encrypted=private_key_encrypted
         )
         
         return created_response(
@@ -84,11 +72,26 @@ def login():
         AuthDbContext.update_last_login(user.id)
         
         token = generate_token(user.id, user.username)
-        
+
+        user_data = user.to_dict()
+        connections = ExchangeConnectionDbContext.get_connections_by_user(user.id)
+        user_data['exchange_connections'] = [
+            {
+                'id': c['id'],
+                'exchange_name': c['exchange_name'],
+                'label': c['label'],
+                'is_validated': bool(c.get('is_validated', 0)),
+                'is_sandbox': bool(c.get('is_sandbox', 0)),
+                'keys_last_validated': c.get('keys_last_validated'),
+            }
+            for c in connections
+        ]
+        user_data['has_validated_connection'] = any(c.get('is_validated') for c in connections)
+
         return success_response(
             data={
                 "token": token,
-                "user": user.to_dict()
+                "user": user_data
             },
             message="Login successful"
         )

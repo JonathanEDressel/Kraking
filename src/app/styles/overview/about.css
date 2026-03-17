@@ -1,0 +1,198 @@
+/* ── About Page ──────────────────────────────────────────────── */
+
+/* Bible verse banner */
+.about-verse-banner {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.07));
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  border-radius: 14px;
+  padding: 1.5rem 1.75rem;
+  margin-bottom: 2rem;
+}
+
+.about-verse-mark {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.14);
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.about-verse-text {
+  font-size: 1.2rem;
+  font-style: italic;
+  color: #e2e8f0;
+  margin: 0 0 0.35rem 0;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.about-verse-ref {
+  font-size: 0.85rem;
+  color: #818cf8;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* Section layout */
+.about-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Two-column row */
+.about-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 700px) {
+  .about-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+.about-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.about-card:hover {
+  border-color: #475569;
+}
+
+.about-card-featured {
+  background: linear-gradient(135deg, #1e293b 0%, #1a2744 100%);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.about-card-featured:hover {
+  border-color: rgba(99, 102, 241, 0.45);
+}
+
+.about-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.about-card-icon-wrap {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #818cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.about-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.about-card-body {
+  color: #94a3b8;
+  font-size: 0.93rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.about-card-body em {
+  color: #e2e8f0;
+  font-style: italic;
+}
+
+/* Values list */
+.about-values-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.about-values-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.about-value-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(6, 182, 212, 0.1);
+  color: #06b6d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  margin-top: 0.1rem;
+}
+
+.about-values-list strong {
+  display: block;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+
+.about-values-list p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+/* Closing statement */
+.about-closing {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.07), rgba(99, 102, 241, 0.05));
+  border: 1px solid rgba(6, 182, 212, 0.18);
+  border-radius: 12px;
+  padding: 1.5rem 1.75rem;
+  text-align: left;
+}
+
+.about-closing-cross {
+  flex-shrink: 0;
+  font-size: 1.5rem;
+  color: #06b6d4;
+  margin-top: 0.15rem;
+  opacity: 0.9;
+}
+
+.about-closing p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.about-closing strong {
+  color: #e2e8f0;
+}

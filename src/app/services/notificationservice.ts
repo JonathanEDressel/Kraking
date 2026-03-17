@@ -3,6 +3,11 @@ class NotificationService {
   private static timer: number | null = null;
   private static lastSeenLogId: number = 0;
   private static isRunning: boolean = false;
+  private static notificationsEnabled: boolean = true;
+
+  static setEnabled(enabled: boolean): void {
+    NotificationService.notificationsEnabled = enabled;
+  }
 
   static async start(): Promise<void> {
     if (NotificationService.isRunning) return;
@@ -30,6 +35,7 @@ class NotificationService {
   }
 
   private static async pollLogs(): Promise<void> {
+    if (!NotificationService.notificationsEnabled) return;
     try {
       const logs = await AutomationController.getLogs(10);
       

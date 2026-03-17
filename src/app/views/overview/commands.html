@@ -1,7 +1,14 @@
 <div class="page-container">
   <div class="overview-header">
     <h1 class="page-title">Custom Commands</h1>
-    <p class="page-subtitle">Automation rules for your Kraken orders</p>
+    <p class="page-subtitle" id="commands-subtitle">Automation rules for your exchange orders</p>
+  </div>
+
+  <div class="commands-exchange-selector-row">
+    <label for="commands-exchange-selector">Exchange:</label>
+    <select id="commands-exchange-selector" class="commands-exchange-select">
+      <option value="" disabled selected>Loading exchanges...</option>
+    </select>
   </div>
 
   <div class="alert alert-warning d-none" id="commands-error">
@@ -20,21 +27,21 @@
     <form id="create-rule-form" class="rule-form">
       <div class="form-row">
         <div class="form-group">
-          <label for="rule-name">Rule Name</label>
+          <label for="rule-name" data-help="A friendly name so you can identify this rule later, e.g. 'Auto-withdraw BTC after sell'.">Rule Name</label>
           <input type="text" id="rule-name" placeholder="e.g. Auto-withdraw BTC after sell" required>
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label for="trigger-type">When (Trigger)</label>
+          <label for="trigger-type" data-help="Choose what event triggers this rule. 'Order is Filled' fires when a specific order completes. 'Balance Threshold' fires when an asset balance reaches a set amount.">When (Trigger)</label>
           <select id="trigger-type">
             <option value="order_filled">Order is Filled</option>
             <option value="balance_threshold">Balance Threshold</option>
           </select>
         </div>
         <div class="form-group trigger-order-section" id="trigger-order-section">
-          <label for="trigger-order-id">Order ID</label>
+          <label for="trigger-order-id" data-help="Select the open order that should trigger this rule when it gets filled.">Order ID</label>
           <select id="trigger-order-id">
             <option value="" disabled selected>Loading orders...</option>
           </select>
@@ -44,13 +51,13 @@
       <!-- Balance Threshold trigger fields -->
       <div class="form-row trigger-balance-section d-none" id="trigger-balance-section">
         <div class="form-group">
-          <label for="trigger-asset">Monitor Asset</label>
+          <label for="trigger-asset" data-help="The asset whose balance will be monitored. The rule triggers when this asset's balance meets the threshold.">Monitor Asset</label>
           <select id="trigger-asset" disabled>
             <option value="" disabled selected>Loading balances...</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="trigger-threshold">Threshold Amount</label>
+          <label for="trigger-threshold" data-help="The minimum balance that triggers this rule. The rule fires when the asset balance is greater than or equal to this amount.">Threshold Amount</label>
           <input type="number" id="trigger-threshold" step="any" min="0" placeholder="e.g. 0.001" disabled>
           <span class="form-hint" id="threshold-hint"></span>
         </div>
@@ -58,7 +65,7 @@
 
       <div class="form-row trigger-balance-section d-none" id="cooldown-section">
         <div class="form-group">
-          <label>Cooldown Period</label>
+          <label data-help="Minimum time to wait between rule executions. Prevents the same rule from firing repeatedly in quick succession.">Cooldown Period</label>
           <div class="cooldown-inputs">
             <div class="cooldown-field">
               <input type="number" id="cooldown-hours" min="0" value="24" step="1" placeholder="0">
@@ -79,31 +86,58 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="action-type">Do (Action)</label>
+          <label for="action-type" data-help="The action to perform when the trigger fires. 'Withdraw Crypto' sends funds to a whitelisted address. 'Convert Crypto' swaps one asset for another via a market order.">Do (Action)</label>
           <select id="action-type">
             <option value="withdraw_crypto">Withdraw Crypto</option>
+            <option value="convert_crypto" disabled>Convert Crypto</option>
           </select>
         </div>
       </div>
 
-      <div class="form-row">
+      <!-- Withdraw fields -->
+      <div class="form-row" id="withdraw-fields">
         <div class="form-group">
-          <label for="action-asset">Asset</label>
+          <label for="action-asset" data-help="The cryptocurrency to withdraw when the rule triggers.">Asset</label>
           <select id="action-asset" disabled>
             <option value="" disabled selected>Select an order first</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="action-address-key">Withdrawal Address Key</label>
-          <select id="action-address-key" disabled required>
+          <label for="action-address-key" data-help="The whitelisted withdrawal address to send funds to. Addresses must be added to your exchange's whitelist first.">Withdrawal Address Key</label>
+          <select id="action-address-key" disabled>
             <option value="" disabled selected>Select an order first</option>
           </select>
         </div>
       </div>
 
+      <!-- Convert fields (only shown for balance_threshold + convert_crypto) -->
+      <div class="form-row d-none" id="convert-fields">
+        <div class="form-group">
+          <label for="convert-from-asset" data-help="The asset you want to convert from. This is locked to your trigger asset.">From Asset</label>
+          <select id="convert-from-asset" disabled>
+            <option value="" disabled selected>Select a trigger asset first</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="convert-to-asset" data-help="The asset you want to receive after conversion. A valid trading pair must exist on the exchange.">To Asset</label>
+          <select id="convert-to-asset" disabled>
+            <option value="" disabled selected>Select a trigger asset first</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Convert amount (only shown for convert_crypto) -->
+      <div class="form-row d-none" id="convert-amount-section">
+        <div class="form-group" style="flex: 1">
+          <label for="convert-amount" data-help="The amount to convert. Leave empty to convert the full balance. Note: exchanges have minimum order sizes — amounts below the minimum will be rejected.">Amount <span class="form-hint-inline">(leave empty for full balance)</span></label>
+          <input type="number" id="convert-amount" step="any" min="0" placeholder="Full balance">
+          <span class="form-hint" id="convert-amount-hint"></span>
+        </div>
+      </div>
+
       <div class="form-row" id="amount-mode-section">
         <div class="form-group">
-          <label>Amount Mode</label>
+          <label data-help="'Fixed Amount' lets you specify an exact amount to withdraw. 'Use Filled Amount' automatically withdraws the amount that was filled from the triggering order.">Amount Mode</label>
           <div class="amount-mode-group">
             <label class="radio-label">
               <input type="radio" name="amount-mode" value="fixed" checked>
@@ -117,8 +151,8 @@
           <span class="form-hint" id="amount-mode-hint"></span>
         </div>
         <div class="form-group">
-          <label for="action-amount">Amount</label>
-          <input type="number" id="action-amount" step="any" min="0" placeholder="Select an order first" disabled required>
+          <label for="action-amount" data-help="The amount of the asset to withdraw when the rule fires.">Amount</label>
+          <input type="number" id="action-amount" step="any" min="0" placeholder="Select an order first" disabled>
           <div class="slider-container">
             <input type="range" id="amount-slider" min="0" max="100" value="100" step="1" disabled>
             <span class="slider-value" id="slider-value">100%</span>

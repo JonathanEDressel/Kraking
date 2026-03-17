@@ -1,14 +1,15 @@
 from flask import Blueprint, request
 from controllers.AutomationDbContext import AutomationDbContext
+from controllers.ExchangeConnectionDbContext import ExchangeConnectionDbContext
 from helper.Security import token_required
 from helper.ErrorHandler import handle_error, bad_request, not_found
 from helper.Helper import success_response, created_response
-from helper.KrakenClient import get_minimum_withdrawal, MINIMUM_WITHDRAWALS, MINIMUM_WITHDRAWAL_CUSHION
+from helper.ExchangeRegistry import get_minimum_withdrawal, get_all_minimums
 
 automation_bp = Blueprint('automation', __name__)
 
 VALID_TRIGGER_TYPES = ['order_filled', 'balance_threshold']
-VALID_ACTION_TYPES = ['withdraw_crypto']
+VALID_ACTION_TYPES = ['withdraw_crypto', 'convert_crypto']
 
 
 @automation_bp.route('/rules', methods=['GET'])
@@ -39,6 +40,30 @@ def create_rule():
             return bad_request(f"Invalid trigger type. Must be one of: {', '.join(VALID_TRIGGER_TYPES)}")
         if action_type not in VALID_ACTION_TYPES:
             return bad_request(f"Invalid action type. Must be one of: {', '.join(VALID_ACTION_TYPES)}")
+
+        # Validate exchange connections
+        trigger_exchange_id = data.get('trigger_exchange_id')
+        action_exchange_id = data.get('action_exchange_id')
+
+        if not trigger_exchange_id:
+            return bad_request("Trigger exchange connection is required")
+        if not action_exchange_id:
+            return bad_request("Action exchange connection is required")
+
+        trigger_exchange_id = int(trigger_exchange_id)
+        action_exchange_id = int(action_exchange_id)
+
+        trigger_conn = ExchangeConnectionDbContext.get_connection(trigger_exchange_id, request.user_id)
+        if not trigger_conn:
+            return bad_request("Trigger exchange connection not found")
+        if not trigger_conn['is_validated']:
+            return bad_request("Trigger exchange connection keys are not validated")
+
+        action_conn = ExchangeConnectionDbContext.get_connection(action_exchange_id, request.user_id)
+        if not action_conn:
+            return bad_request("Action exchange connection not found")
+        if not action_conn['is_validated']:
+            return bad_request("Action exchange connection keys are not validated")
 
         # Validate trigger params
         trigger_order_id = data.get('trigger_order_id', '').strip() or None
@@ -76,6 +101,7 @@ def create_rule():
         action_address_key = data.get('action_address_key', '').strip() or None
         action_amount = data.get('action_amount', '').strip() or None
         use_filled_amount = bool(data.get('use_filled_amount', False))
+        convert_to_asset = data.get('convert_to_asset', '').strip() or None
 
         if action_type == 'withdraw_crypto':
             if not action_asset:
@@ -92,7 +118,8 @@ def create_rule():
             if not use_filled_amount and action_amount and trigger_type != 'balance_threshold':
                 try:
                     amount_val = float(action_amount)
-                    min_withdrawal = get_minimum_withdrawal(action_asset)
+                    action_exchange_name = action_conn['exchange_name']
+                    min_withdrawal = get_minimum_withdrawal(action_exchange_name, action_asset)
                     if min_withdrawal > 0 and amount_val < min_withdrawal:
                         return bad_request(
                             f"Amount {amount_val} is below the minimum withdrawal of "
@@ -100,6 +127,25 @@ def create_rule():
                         )
                 except (ValueError, TypeError):
                     pass
+
+        elif action_type == 'convert_crypto':
+            if trigger_type != 'balance_threshold':
+                return bad_request("Convert Crypto is only available with the Balance Threshold trigger")
+            if not action_asset:
+                return bad_request("Source asset is required for convert action")
+            if not convert_to_asset:
+                return bad_request("Target asset is required for convert action")
+            if action_asset == convert_to_asset:
+                return bad_request("Source and target assets must be different")
+            # Validate optional fixed amount
+            if action_amount:
+                try:
+                    amount_val = float(action_amount)
+                    if amount_val <= 0:
+                        return bad_request("Convert amount must be a positive number")
+                except (ValueError, TypeError):
+                    return bad_request("Convert amount must be a valid number")
+            action_address_key = ''  # not used for conversions
 
         rule_id = AutomationDbContext.create_rule(
             user_id=request.user_id,
@@ -116,6 +162,9 @@ def create_rule():
             trigger_asset=trigger_asset,
             trigger_threshold=trigger_threshold,
             cooldown_minutes=cooldown_minutes,
+            trigger_exchange_id=trigger_exchange_id,
+            action_exchange_id=action_exchange_id,
+            convert_to_asset=convert_to_asset,
         )
 
         rule = AutomationDbContext.get_rule_by_id(rule_id, request.user_id)
@@ -174,7 +223,8 @@ def delete_rule(rule_id):
 @token_required
 def get_withdrawal_minimums():
     try:
-        minimums = {asset: get_minimum_withdrawal(asset) for asset in MINIMUM_WITHDRAWALS}
+        exchange_name = request.args.get('exchange', 'kraken').strip().lower()
+        minimums = get_all_minimums(exchange_name)
         return success_response(data=minimums)
     except Exception as e:
         return handle_error(e)

@@ -2,6 +2,85 @@
 
 .d-none { display: none !important; }
 
+/* ── Help Tooltip Component ─────────────────────────────── */
+.help-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  color: #818cf8;
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  user-select: none;
+  line-height: 1;
+}
+
+.help-icon:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+.help-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  min-width: 220px;
+  max-width: 300px;
+  padding: 0.65rem 0.85rem;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: normal;
+  z-index: 200;
+  white-space: normal;
+}
+
+.help-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+  height: 8px;
+  background: #1e293b;
+  border-top: 1px solid #334155;
+  border-left: 1px solid #334155;
+}
+
+.help-dropdown.open {
+  display: block;
+  animation: helpFadeIn 0.15s ease;
+}
+
+@keyframes helpFadeIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
+}
+
 /* Global modern scrollbar styles */
 ::-webkit-scrollbar {
   width: 10px;
@@ -74,7 +153,7 @@
 .header-brand {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #22c55e;
+  color: #06b6d4;
   letter-spacing: -0.5px;
 }
 
@@ -132,6 +211,65 @@
   gap: 0.75rem;
 }
 
+.exchange-selector {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  padding-right: 1.6rem;
+}
+
+.exchange-selector:hover,
+.exchange-selector:focus {
+  border-color: #06b6d4;
+}
+
+.exchange-selector option {
+  background: #1e293b;
+  color: #e2e8f0;
+}
+
+/* Exchange badges used in tables when "All" mode is active */
+.exchange-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.exchange-kraken {
+  background: rgba(114, 79, 214, 0.18);
+  color: #a78bfa;
+  border: 1px solid rgba(114, 79, 214, 0.35);
+}
+
+.exchange-coinbase {
+  background: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+}
+
+.exchange-binance {
+  background: rgba(234, 179, 8, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(234, 179, 8, 0.30);
+}
+
 .header-user-btn {
   background: none;
   border: 1px solid #334155;
@@ -144,8 +282,8 @@
 }
 
 .header-user-btn:hover {
-  border-color: #22c55e;
-  color: #22c55e;
+  border-color: #06b6d4;
+  color: #06b6d4;
 }
 
 #app-content {
@@ -154,6 +292,26 @@
 
 .app-header:not(.d-none) ~ #app-content {
   padding-top: 56px;
+}
+
+/* Floating exchange panel — left side below header */
+.exchange-panel {
+  position: fixed;
+  top: 66px;
+  left: 1.5rem;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.exchange-panel-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding-left: 0.1rem;
 }
 
 /* API Key Warning Banner */
@@ -271,7 +429,7 @@
 }
 
 .footer-links a:hover {
-  color: #22c55e;
+  color: #06b6d4;
 }
 
 .donation-widget {
@@ -285,12 +443,12 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
   border: none;
   color: #fff;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
@@ -299,7 +457,7 @@
 
 .donation-toggle:hover {
   transform: scale(1.1);
-  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 16px rgba(6, 182, 212, 0.5), 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
 .donation-toggle i {
@@ -323,7 +481,7 @@
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   animation: slideInUp 0.3s ease;
-  max-height: 400px;
+  max-height: 700px;
   overflow-y: auto;
 }
 
@@ -357,7 +515,7 @@
 }
 
 .donation-header .me-2 {
-  color: #22c55e;
+  color: #06b6d4;
 }
 
 .donation-close {
@@ -402,7 +560,7 @@
 }
 
 .donation-option:hover {
-  border-color: #22c55e;
+  border-color: #06b6d4;
 }
 
 .donation-option:last-child {
@@ -422,7 +580,7 @@
 }
 
 .donation-label i {
-  color: #22c55e;
+  color: #06b6d4;
   font-size: 1rem;
 }
 
@@ -439,19 +597,19 @@
   font-family: 'Courier New', monospace;
   word-break: break-all;
   padding: 0.5rem;
-  background: rgba(34, 197, 94, 0.05);
+  background: rgba(6, 182, 212, 0.05);
   border-radius: 6px;
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  border: 1px solid rgba(6, 182, 212, 0.2);
 }
 
 .copy-btn {
   flex-shrink: 0;
   width: 32px;
   height: 32px;
-  background: rgba(34, 197, 94, 0.1);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.2);
   border-radius: 6px;
-  color: #22c55e;
+  color: #06b6d4;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -461,8 +619,8 @@
 }
 
 .copy-btn:hover {
-  background: rgba(34, 197, 94, 0.2);
-  border-color: #22c55e;
+  background: rgba(6, 182, 212, 0.2);
+  border-color: #06b6d4;
   transform: scale(1.05);
 }
 
@@ -471,8 +629,8 @@
 }
 
 .copy-btn.copied {
-  background: rgba(34, 197, 94, 0.3);
-  border-color: #22c55e;
+  background: rgba(6, 182, 212, 0.3);
+  border-color: #06b6d4;
 }
 
 .copy-btn.copied i {
@@ -487,17 +645,17 @@
 
 .donation-link {
   display: inline-block;
-  color: #22c55e;
+  color: #06b6d4;
   text-decoration: none;
   font-weight: 500;
   padding: 0.5rem 0.75rem;
-  background: rgba(34, 197, 94, 0.1);
+  background: rgba(6, 182, 212, 0.1);
   border-radius: 6px;
   transition: background 0.2s;
 }
 
 .donation-link:hover {
-  background: rgba(34, 197, 94, 0.2);
+  background: rgba(6, 182, 212, 0.2);
   text-decoration: underline;
 }
 

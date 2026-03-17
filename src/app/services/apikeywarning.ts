@@ -19,8 +19,6 @@ class ApiKeyWarning {
       ApiKeyWarning.hide();
       if (status === 'valid') {
         ApiKeyWarning.dismissed = false;
-        // Keys just became valid — start KrakenStore if it wasn't running
-        KrakenStore.start();
         NotificationService.start();
       }
       return;
@@ -32,12 +30,9 @@ class ApiKeyWarning {
     if (!messageEl) return;
 
     if (status === 'none') {
-      messageEl.textContent = 'No Kraken API keys configured. Add your API keys in Settings to enable automation features.';
-    } else if (status === 'invalid') {
-      const error = ApiKeyState.error;
-      messageEl.textContent = error
-        ? `Invalid Kraken API keys: ${error}. Please update them in Settings.`
-        : 'Invalid Kraken API keys. Please check your credentials in Settings.';
+      messageEl.textContent = 'No exchange connections configured. Add an exchange connection in Settings to enable automation features.';
+    } else if (status === 'has_unvalidated') {
+      messageEl.textContent = 'Your exchange connection keys have not been validated. Please validate them in Settings.';
     }
 
     ApiKeyWarning.show();

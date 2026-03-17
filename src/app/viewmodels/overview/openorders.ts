@@ -10,7 +10,7 @@ class OpenOrdersController {
   private init(): void {
     this.render();
 
-    this.unsubscribe = KrakenStore.onUpdate(() => this.render());
+    this.unsubscribe = ExchangeStore.onUpdate(() => this.render());
 
     const observer = new MutationObserver(() => {
       if (!document.getElementById('orders-table')) {
@@ -23,16 +23,35 @@ class OpenOrdersController {
   }
 
   private render(): void {
-    const orders = KrakenStore.openOrders;
-    const error = KrakenStore.error;
-    const lastUpdated = KrakenStore.lastUpdated;
+    const orders = ExchangeStore.openOrders;
+    const error = ExchangeStore.error;
+    const lastUpdated = ExchangeStore.lastUpdated;
+    const isAll = ExchangeStore.isAllMode();
+
+    // Update subtitle
+    const subtitle = document.getElementById('page-subtitle');
+    if (subtitle) {
+      const label = isAll ? '' : ` on ${ExchangeStore.getExchangeName(ExchangeStore.activeMode as number)}`;
+      const refreshSpan = document.getElementById('refresh-label');
+      const refreshHtml = refreshSpan ? refreshSpan.outerHTML : '';
+      subtitle.innerHTML = `Your active orders${this.escapeHtml(label)} ${refreshHtml}`;
+    }
+
+    // Update thead for exchange column
+    const thead = document.getElementById('orders-thead');
+    if (thead) {
+      const cols = isAll
+        ? '<tr><th>Exchange</th><th>Order ID</th><th>Pair</th><th>Side</th><th>Type</th><th>Price</th><th>Volume</th><th>Filled</th><th>Status</th><th>Opened</th></tr>'
+        : '<tr><th>Order ID</th><th>Pair</th><th>Side</th><th>Type</th><th>Price</th><th>Volume</th><th>Filled</th><th>Status</th><th>Opened</th></tr>';
+      thead.innerHTML = cols;
+    }
 
     if (error) {
       this.showError(error);
       this.setRefreshLabel('');
     } else {
       this.hideError();
-      this.renderOrders(orders);
+      this.renderOrders(orders, isAll);
       this.updateCountTitle(orders.length);
       if (lastUpdated) {
         this.setRefreshLabel(`Last updated: ${lastUpdated.toLocaleTimeString()}`);
@@ -40,22 +59,26 @@ class OpenOrdersController {
     }
   }
 
-  private renderOrders(orders: any[]): void {
+  private renderOrders(orders: any[], isAll: boolean): void {
     const tbody = document.getElementById('orders-tbody');
     if (!tbody) return;
 
+    const colspan = isAll ? 10 : 9;
     if (orders.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No open orders</td></tr>';
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">No open orders</td></tr>`;
       return;
     }
 
     tbody.innerHTML = orders.map((o: any) => {
       const sideClass = o.side === 'buy' ? 'side-buy' : 'side-sell';
-      const opened = o.opentm ? new Date(o.opentm * 1000).toLocaleString() : '--';
-      const formattedPair = this.formatPair(o.pair);
+      const opened = o.opentm ? new Date(o.opentm).toLocaleString() : '--';
+      const exchangeCol = isAll
+        ? `<td><span class="exchange-badge exchange-${this.escapeHtml(o.exchangeName).toLowerCase()}">${this.escapeHtml(o.exchangeName)}</span></td>`
+        : '';
       return `<tr>
+        ${exchangeCol}
         <td class="order-id-cell">${this.escapeHtml(o.id)}</td>
-        <td>${this.escapeHtml(formattedPair)}</td>
+        <td>${this.escapeHtml(o.pair)}</td>
         <td><span class="${sideClass}">${this.escapeHtml(o.side)}</span></td>
         <td>${this.escapeHtml(o.type)}</td>
         <td>${this.escapeHtml(o.price)}</td>
@@ -65,49 +88,6 @@ class OpenOrdersController {
         <td>${this.escapeHtml(opened)}</td>
       </tr>`;
     }).join('');
-  }
-
-  private formatPair(pair: string): string {
-    if (!pair) return pair;
-
-    const QUOTE_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'USDT', 'USDC', 'DAI', 'BUSD'];
-    
-    let cleaned = pair;
-    
-    if (cleaned.startsWith('XX') && cleaned.length > 6) {
-      cleaned = cleaned.substring(1);
-    } else if (cleaned.startsWith('X') && cleaned.length > 6 && !cleaned.startsWith('XBT') && !cleaned.startsWith('XDG')) {
-      cleaned = cleaned.substring(1);
-    }
-    
-    for (const quote of QUOTE_CURRENCIES) {
-      const zQuote = 'Z' + quote;
-      if (cleaned.endsWith(zQuote)) {
-        let base = cleaned.substring(0, cleaned.length - zQuote.length);
-        base = this.normalizeBase(base);
-        return `${base}/${quote}`;
-      }
-      if (cleaned.endsWith(quote)) {
-        let base = cleaned.substring(0, cleaned.length - quote.length);
-        base = this.normalizeBase(base);
-        return `${base}/${quote}`;
-      }
-    }
-
-    if (cleaned.length >= 6) {
-      let base = cleaned.substring(0, cleaned.length - 3);
-      const quote = cleaned.substring(cleaned.length - 3);
-      base = this.normalizeBase(base);
-      return `${base}/${quote}`;
-    }
-
-    return this.normalizeBase(cleaned);
-  }
-
-  private normalizeBase(base: string): string {
-    if (base === 'XBT' || base === 'XXBT') return 'BTC';
-    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
-    return base;
   }
 
   private updateCountTitle(count: number): void {

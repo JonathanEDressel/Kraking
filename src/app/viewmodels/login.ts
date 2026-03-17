@@ -103,7 +103,15 @@ class LoginController {
       console.log('Login successful! - ', user);
 
       ApiKeyWarning.init();
-      KrakenStore.start();
+
+      // Load connections and start ExchangeStore in 'all' mode
+      try {
+        await ExchangeStore.loadConnections();
+        if (ExchangeStore.connections.length > 0) {
+          ExchangeStore.start('all');
+        }
+      } catch {}
+
       NotificationService.start();
       router.navigate('home');
 

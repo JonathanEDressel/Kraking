@@ -10,7 +10,7 @@ class HomeController {
     this.attachEventListeners();
     this.loadDashboardData();
 
-    this.unsubscribe = KrakenStore.onUpdate(() => this.renderFromStore());
+    this.unsubscribe = ExchangeStore.onUpdate(() => this.renderFromStore());
 
     const observer = new MutationObserver(() => {
       if (!document.getElementById('orders-tbody')) {
@@ -50,12 +50,31 @@ class HomeController {
   }
 
   private renderFromStore(): void {
-    const orders = KrakenStore.openOrders;
-    if (KrakenStore.error) {
-      this.setTableEmpty('orders-tbody', 6, 'Failed to load orders');
+    const orders = ExchangeStore.openOrders;
+    const isAll = ExchangeStore.isAllMode();
+
+    // Update subtitle
+    const subtitle = document.getElementById('page-subtitle');
+    if (subtitle) {
+      subtitle.textContent = isAll
+        ? 'Overview of your exchange accounts'
+        : `Overview of your ${ExchangeStore.getExchangeName(ExchangeStore.activeMode as number)} account`;
+    }
+
+    // Update orders table header for exchange column
+    const thead = document.getElementById('orders-thead');
+    if (thead) {
+      const cols = isAll
+        ? '<tr><th>Exchange</th><th>Pair</th><th>Type</th><th>Side</th><th>Price</th><th>Volume</th><th>Status</th></tr>'
+        : '<tr><th>Pair</th><th>Type</th><th>Side</th><th>Price</th><th>Volume</th><th>Status</th></tr>';
+      thead.innerHTML = cols;
+    }
+
+    if (ExchangeStore.error) {
+      this.setTableEmpty('orders-tbody', isAll ? 7 : 6, 'Failed to load orders');
       this.setCardValue('open-orders-count', '--');
     } else {
-      this.renderOrders(orders);
+      this.renderOrders(orders, isAll);
       this.setCardValue('open-orders-count', orders.length.toString());
     }
   }
@@ -78,7 +97,7 @@ class HomeController {
     }
 
     tbody.innerHTML = logs.map((l: any) => {
-      const time = l.created_at ? new Date(l.created_at).toLocaleString() : '--';
+      const time = l.created_at ? new Date(l.created_at.endsWith('Z') ? l.created_at : l.created_at + 'Z').toLocaleString() : '--';
       const statusClass = l.status === 'success' ? 'log-success' : 'log-error';
 
       return `<tr>
@@ -91,20 +110,24 @@ class HomeController {
     }).join('');
   }
 
-  private renderOrders(orders: any[]): void {
+  private renderOrders(orders: any[], isAll: boolean): void {
     const tbody = document.getElementById('orders-tbody');
     if (!tbody) return;
 
+    const colspan = isAll ? 7 : 6;
     if (orders.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No open orders</td></tr>';
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">No open orders</td></tr>`;
       return;
     }
 
     tbody.innerHTML = orders.map((o: any) => {
       const sideClass = o.side === 'buy' ? 'side-buy' : 'side-sell';
-      const formattedPair = this.formatPair(o.pair);
+      const exchangeCol = isAll
+        ? `<td><span class="exchange-badge exchange-${this.escapeHtml(o.exchangeName).toLowerCase()}">${this.escapeHtml(o.exchangeName)}</span></td>`
+        : '';
       return `<tr>
-        <td>${this.escapeHtml(formattedPair)}</td>
+        ${exchangeCol}
+        <td>${this.escapeHtml(o.pair)}</td>
         <td>${this.escapeHtml(o.type)}</td>
         <td><span class="${sideClass}">${this.escapeHtml(o.side)}</span></td>
         <td>${this.escapeHtml(o.price)}</td>
@@ -112,49 +135,6 @@ class HomeController {
         <td><span class="status-badge">${this.escapeHtml(o.status)}</span></td>
       </tr>`;
     }).join('');
-  }
-
-  private formatPair(pair: string): string {
-    if (!pair) return pair;
-
-    const QUOTE_CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF', 'USDT', 'USDC', 'DAI', 'BUSD'];
-    
-    let cleaned = pair;
-    
-    if (cleaned.startsWith('XX') && cleaned.length > 6) {
-      cleaned = cleaned.substring(1);
-    } else if (cleaned.startsWith('X') && cleaned.length > 6 && !cleaned.startsWith('XBT') && !cleaned.startsWith('XDG')) {
-      cleaned = cleaned.substring(1);
-    }
-    
-    for (const quote of QUOTE_CURRENCIES) {
-      const zQuote = 'Z' + quote;
-      if (cleaned.endsWith(zQuote)) {
-        let base = cleaned.substring(0, cleaned.length - zQuote.length);
-        base = this.normalizeBase(base);
-        return `${base}/${quote}`;
-      }
-      if (cleaned.endsWith(quote)) {
-        let base = cleaned.substring(0, cleaned.length - quote.length);
-        base = this.normalizeBase(base);
-        return `${base}/${quote}`;
-      }
-    }
-
-    if (cleaned.length >= 6) {
-      let base = cleaned.substring(0, cleaned.length - 3);
-      const quote = cleaned.substring(cleaned.length - 3);
-      base = this.normalizeBase(base);
-      return `${base}/${quote}`;
-    }
-
-    return this.normalizeBase(cleaned);
-  }
-
-  private normalizeBase(base: string): string {
-    if (base === 'XBT' || base === 'XXBT') return 'BTC';
-    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
-    return base;
   }
 
   private async loadCommands(): Promise<void> {
@@ -179,13 +159,8 @@ class HomeController {
     tbody.innerHTML = rules.map((r: any) => {
       const statusClass = r.is_active ? 'status-active' : 'status-inactive';
       const statusText = r.is_active ? 'Active' : 'Paused';
-      const orderId = r.trigger_order_id
-        ? this.escapeHtml(r.trigger_order_id.substring(0, 10)) + '...'
-        : 'Any';
-      const trigger = `<span class="trigger-badge">Order Filled</span> <span class="mono-text">${orderId}</span>`;
-      const action = r.action_type === 'withdraw_crypto'
-        ? `Withdraw <strong>${this.escapeHtml(r.action_amount)}</strong> <span class="asset-badge">${this.escapeHtml(this.normalizeBase(r.action_asset))}</span>`
-        : this.escapeHtml(r.action_type);
+      const trigger = this.formatTrigger(r);
+      const action = this.formatAction(r);
 
       return `<tr>
         <td>${this.escapeHtml(r.rule_name)}</td>
@@ -194,6 +169,58 @@ class HomeController {
         <td><span class="status-badge ${statusClass}">${statusText}</span></td>
       </tr>`;
     }).join('');
+  }
+
+  private formatTrigger(rule: any): string {
+    if (rule.trigger_type === 'order_filled') {
+      const orderId = rule.trigger_order_id
+        ? this.escapeHtml(rule.trigger_order_id.substring(0, 10)) + '...'
+        : 'Any';
+      return `<span class="trigger-badge">Order Filled</span> <span class="mono-text">${orderId}</span>`;
+    }
+    if (rule.trigger_type === 'balance_threshold') {
+      const asset = rule.trigger_asset || '';
+      const threshold = rule.trigger_threshold || '0';
+      const cooldown = this.formatCooldown(rule.cooldown_minutes || 1440);
+      return `<span class="trigger-badge trigger-badge-balance">Balance ≥</span> `
+        + `<strong>${this.escapeHtml(threshold)}</strong> `
+        + `<span class="asset-badge">${this.escapeHtml(asset)}</span>`
+        + `<br><span class="cooldown-text">Cooldown: ${cooldown}</span>`;
+    }
+    return this.escapeHtml(rule.trigger_type);
+  }
+
+  private formatAction(rule: any): string {
+    if (rule.action_type === 'withdraw_crypto') {
+      let amountText: string;
+      if (rule.trigger_type === 'balance_threshold') {
+        amountText = '<em>Full Balance</em>';
+      } else if (rule.use_filled_amount) {
+        amountText = '<em>Filled Amount</em>';
+      } else {
+        amountText = `<strong>${this.escapeHtml(rule.action_amount)}</strong>`;
+      }
+      return `Withdraw ${amountText} `
+        + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
+        + `→ ${this.escapeHtml(rule.action_address_key)}`;
+    }
+    if (rule.action_type === 'convert_crypto') {
+      const convertAmountText = rule.action_amount
+        ? `<strong>${this.escapeHtml(rule.action_amount)}</strong>`
+        : '<em>Full Balance</em>';
+      return `Convert ${convertAmountText} `
+        + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
+        + `→ <span class="asset-badge">${this.escapeHtml(rule.convert_to_asset || '?')}</span>`;
+    }
+    return this.escapeHtml(rule.action_type);
+  }
+
+  private formatCooldown(minutes: number): string {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${mins}m`;
   }
 
   private setCardValue(id: string, value: string): void {

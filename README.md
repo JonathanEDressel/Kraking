@@ -1,4 +1,4 @@
-# Kraking
+# Cyrus
 
 A desktop application for managing and monitoring your Kraken cryptocurrency trading account. Built with Electron, TypeScript, Python Flask, and SQLite.
 
@@ -43,7 +43,7 @@ Before you begin, ensure you have the following installed:
 
 ```bash
 git clone <repository-url>
-cd Kraking
+cd Cyrus
 ```
 
 ### 2. Backend Setup (Python/Flask)
@@ -77,7 +77,7 @@ cd Kraking
 
 4. **Create `.env` File** (Optional)
    
-   Create a file named `.env` in the project root directory (`Kraking/.env`) if you want to customize settings:
+   Create a file named `.env` in the project root directory (`Cyrus/.env`) if you want to customize settings:
 
    ```env
    # Application
@@ -109,7 +109,7 @@ cd Kraking
 
 1. **Open a NEW terminal** and navigate to project root
    ```bash
-   cd Kraking
+   cd Cyrus
    ```
 
 2. **Install Node Dependencies**
@@ -144,7 +144,7 @@ python Server.py
 ### Start Frontend (Terminal 2)
 
 ```bash
-cd Kraking
+cd Cyrus
 npm start
 ```
 
@@ -179,7 +179,7 @@ The Electron desktop app will launch automatically.
 ## Project Structure
 
 ```
-Kraking/
+Cyrus/
 ├── src/
 │   ├── index.html                 # Main HTML entry point
 │   ├── app/
@@ -274,7 +274,7 @@ npm run dist
 After building, you'll find the installer at:
 
 ```
-release/Kraking Setup 1.0.0.exe
+release/Cyrus Setup 1.0.0.exe
 ```
 
 ### What the Installer Includes
@@ -289,16 +289,16 @@ The installer is a completely self-contained package that includes:
 
 When a user installs and runs your application:
 
-1. **Installation:** User runs `Kraking Setup 1.0.0.exe` and chooses install location (default: `C:\Program Files\Kraking`)
-2. **Launch:** User opens Kraking from Start Menu or Desktop shortcut
+1. **Installation:** User runs `Cyrus Setup 1.0.0.exe` and chooses install location (default: `C:\Program Files\Cyrus`)
+2. **Launch:** User opens Cyrus from Start Menu or Desktop shortcut
 3. **Auto-Start Backend:** Electron automatically starts the Python backend in the background
-4. **Database:** SQLite database is created in user's AppData folder (`%APPDATA%\Kraking\kraking.db`)
+4. **Database:** SQLite database is created in user's AppData folder (`%APPDATA%\Cyrus\Cyrus.db`)
 5. **Data Storage:** All user data (accounts, API keys, automation rules) stored locally in their SQLite database
 6. **Shutdown:** When user closes the app, the backend process automatically terminates
 
 ### Distribution
 
-The `Kraking Setup 1.0.0.exe` file can be distributed to users who can then:
+The `Cyrus Setup 1.0.0.exe` file can be distributed to users who can then:
 - Double-click to install
 - No need to install Python, Node.js, or MySQL
 - No manual database setup required

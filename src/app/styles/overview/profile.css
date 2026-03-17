@@ -4,6 +4,75 @@
   gap: 1.5rem;
 }
 
+.setting-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.setting-toggle-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setting-toggle-title {
+  color: #f1f5f9;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.setting-toggle-desc {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #334155;
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  top: 3px;
+  background: #94a3b8;
+  border-radius: 50%;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #0e7490;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(22px);
+  background: #06b6d4;
+}
+
 .profile-section {
   margin-bottom: 0.5rem;
 }
@@ -43,8 +112,8 @@
 
 .profile-card .form-control:focus {
   outline: none;
-  border-color: #22c55e;
-  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.15);
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.15);
 }
 
 .profile-card .form-control::placeholder {
@@ -65,12 +134,12 @@
 }
 
 .profile-card .btn.btn-primary {
-  background: #22c55e;
+  background: #06b6d4;
   color: #fff;
 }
 
 .profile-card .btn.btn-primary:hover {
-  background: #16a34a;
+  background: #0891b2;
   transform: translateY(-1px);
 }
 
@@ -99,4 +168,8 @@
   .profile-card {
     padding: 1rem;
   }
+}
+
+.connection-label {
+  color: white;
 }

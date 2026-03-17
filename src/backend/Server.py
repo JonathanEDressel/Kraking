@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 from Extensions import cors
 from Routes import register_routes
 from helper.SetupDatabase import setup_database
+from helper.MigrateDatabase import run_migrations, run_column_migrations
 from automation.worker import start_worker
 
 load_dotenv()
@@ -18,6 +19,8 @@ def create_app():
     
     with app.app_context():
         setup_database()
+        run_migrations()
+        run_column_migrations()
     
     register_routes(app)
 

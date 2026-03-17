@@ -1,7 +1,7 @@
 <div class="page-container">
   <div class="overview-header">
     <h1 class="page-title">Whitelisted Addresses</h1>
-    <p class="page-subtitle">Your withdrawal addresses on Kraken <span class="auto-refresh-label" id="refresh-label"></span></p>
+    <p class="page-subtitle" id="page-subtitle">Your withdrawal addresses <span class="auto-refresh-label" id="refresh-label"></span></p>
   </div>
 
   <div class="alert alert-warning d-none" id="addresses-error">
@@ -14,7 +14,7 @@
     </div>
     <div class="data-table-wrapper">
       <table class="data-table" id="addresses-table">
-        <thead>
+        <thead id="addresses-thead">
           <tr>
             <th>Asset</th>
             <th>Method / Address</th>

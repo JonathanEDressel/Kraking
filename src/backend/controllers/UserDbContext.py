@@ -13,16 +13,6 @@ class UserDbContext:
         return UserModel.from_row(row)
     
     @staticmethod
-    def update_kraken_keys(user_id: int, api_key_encrypted: str, private_key_encrypted: str) -> bool:
-        execute_non_query(
-            '''UPDATE users 
-               SET kraken_api_key_encrypted = ?, kraken_private_key_encrypted = ?
-               WHERE id = ?''',
-            (api_key_encrypted, private_key_encrypted, user_id)
-        )
-        return True
-    
-    @staticmethod
     def update_password(user_id: int, password_hash: str) -> bool:
         execute_non_query(
             '''UPDATE users 
@@ -51,31 +41,9 @@ class UserDbContext:
         return True
 
     @staticmethod
-    def mark_keys_valid(user_id: int) -> bool:
+    def update_notifications(user_id: int, enabled: bool) -> bool:
         execute_non_query(
-            '''UPDATE users 
-               SET keys_validated = 1, keys_last_validated = CURRENT_TIMESTAMP
-               WHERE id = ?''',
-            (user_id,)
-        )
-        return True
-
-    @staticmethod
-    def mark_keys_invalid(user_id: int) -> bool:
-        execute_non_query(
-            '''UPDATE users 
-               SET keys_validated = 0, keys_last_validated = CURRENT_TIMESTAMP
-               WHERE id = ?''',
-            (user_id,)
-        )
-        return True
-
-    @staticmethod
-    def clear_keys_validation(user_id: int) -> bool:
-        execute_non_query(
-            '''UPDATE users 
-               SET keys_validated = 0, keys_last_validated = NULL
-               WHERE id = ?''',
-            (user_id,)
+            'UPDATE users SET notifications_enabled = ? WHERE id = ?',
+            (1 if enabled else 0, user_id)
         )
         return True

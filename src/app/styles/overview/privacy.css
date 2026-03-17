@@ -1,0 +1,200 @@
+/* ── Privacy Page ────────────────────────────────────────────── */
+
+/* Headline banner */
+.privacy-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(6, 182, 212, 0.04));
+  border: 1px solid rgba(6, 182, 212, 0.22);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+  color: #e2e8f0;
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.privacy-banner-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(6, 182, 212, 0.12);
+  color: #06b6d4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+}
+
+.privacy-banner-body strong {
+  color: #06b6d4;
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 1rem;
+}
+
+/* Section layout */
+.privacy-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Cards */
+.privacy-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: border-color 0.2s;
+}
+
+.privacy-card:hover {
+  border-color: #475569;
+}
+
+.privacy-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.privacy-card-icon {
+  color: #06b6d4;
+  font-size: 1.1rem;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.privacy-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 0;
+  flex: 1;
+}
+
+.privacy-card-body {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  margin: 0 0 0.75rem 0;
+}
+
+.privacy-card-body.mt-1 {
+  margin-top: 0.75rem;
+}
+
+.privacy-card-body code,
+.privacy-filepath code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid #334155;
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  color: #67e8f9;
+}
+
+/* Tags */
+.privacy-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  margin-left: auto;
+}
+
+.privacy-tag-local {
+  background: rgba(6, 182, 212, 0.1);
+  color: #06b6d4;
+  border: 1px solid rgba(6, 182, 212, 0.25);
+}
+
+.privacy-tag-secure {
+  background: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.privacy-tag-exchange {
+  background: rgba(251, 191, 36, 0.08);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.22);
+}
+
+.privacy-tag-none {
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Lists */
+.privacy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.privacy-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.privacy-list li strong {
+  color: #cbd5e1;
+}
+
+/* check / arrow / x icons */
+.privacy-list-icon {
+  color: #06b6d4;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+
+.privacy-list-icon-sm {
+  color: #475569;
+  font-size: 0.7rem;
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+
+.privacy-list-icon-none {
+  color: #ef4444;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+
+/* File path hint */
+.privacy-filepath {
+  margin: 1rem 0 0 0;
+  font-size: 0.82rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}

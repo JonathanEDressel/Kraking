@@ -3,7 +3,8 @@
   min-height: 100vh;
   margin: 0;
   padding: 0;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(6, 182, 212, 0.07) 0%, transparent 60%),
+              linear-gradient(160deg, #060d1a 0%, #0a1628 50%, #030a14 100%);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -16,79 +17,89 @@
 }
 
 .auth-card {
-  background: #fff;
-  border-radius: 16px;
-  padding: 3rem 2.5rem;
+  background: rgba(14, 24, 42, 0.85);
+  border: 1px solid rgba(6, 182, 212, 0.18);
+  border-radius: 20px;
+  padding: 2.75rem 2.5rem;
   max-width: 440px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(6, 182, 212, 0.06),
+              0 24px 64px rgba(0, 0, 0, 0.6),
+              0 0 80px rgba(6, 182, 212, 0.04);
+  backdrop-filter: blur(12px);
 }
 
 .auth-card.wide {
-  max-width: 600px;
+  max-width: 580px;
 }
 
 .auth-logo {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .auth-logo img {
-  max-width: 180px;
-  height: auto;
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.45));
 }
 
 .auth-title {
-  font-size: 1.75rem;
+  font-size: 1.65rem;
   font-weight: 700;
-  color: #1e293b;
+  color: #f1f5f9;
   text-align: center;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.35rem;
+  letter-spacing: -0.3px;
 }
 
 .auth-subtitle {
   text-align: center;
   color: #64748b;
-  font-size: 1rem;
-  margin-bottom: 2rem;
+  font-size: 0.95rem;
+  margin-bottom: 0;
 }
 
 .auth-form {
-  margin: 2rem 0;
+  margin: 1.75rem 0;
 }
 
 .form-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-label {
   display: block;
   font-weight: 600;
-  color: #334155;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
+  color: #94a3b8;
+  margin-bottom: 0.45rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .form-control {
   width: 100%;
   padding: 0.75rem 1rem;
-  font-size: 1rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  background: #f8fafc;
+  font-size: 0.95rem;
+  border: 1px solid #1e2d40;
+  border-radius: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  background: rgba(8, 18, 32, 0.8);
+  color: #e2e8f0;
   box-sizing: border-box;
 }
 
 .form-control:focus {
   outline: none;
-  border-color: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
-  background: #fff;
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.12), 0 0 12px rgba(6, 182, 212, 0.08);
+  background: rgba(6, 182, 212, 0.03);
 }
 
 .form-control::placeholder {
-  color: #94a3b8;
+  color: #334155;
 }
 
 .form-control.text-center {
@@ -101,7 +112,7 @@
 }
 
 .text-muted {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .mt-2 {
@@ -110,56 +121,65 @@
 
 .form-footer {
   text-align: right;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .link-small {
-  color: #22c55e;
+  color: #06b6d4;
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
   font-weight: 500;
   transition: color 0.2s;
 }
 
 .link-small:hover {
-  color: #16a34a;
+  color: #67e8f9;
   text-decoration: underline;
 }
 
 .btn {
-  padding: 0.875rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.8rem 1.5rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
 }
 
 .btn.btn-primary {
-  background: #22c55e;
+  background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
   color: #fff;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.3);
 }
 
 .btn.btn-primary:hover:not(:disabled) {
-  background: #16a34a;
+  background: linear-gradient(135deg, #22d3ee 0%, #06b6d4 100%);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.45);
   transform: translateY(-1px);
 }
 
+.btn.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+}
+
 .btn.btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn.btn-outline {
   background: transparent;
-  border-color: #e2e8f0;
-  color: #475569;
+  border-color: #1e2d40;
+  color: #64748b;
 }
 
 .btn.btn-outline:hover {
-  border-color: #cbd5e0;
-  background: #f8fafc;
+  border-color: #334155;
+  background: rgba(255, 255, 255, 0.03);
+  color: #94a3b8;
 }
 
 .btn.btn-full {
@@ -173,7 +193,7 @@
 .btn.btn-link {
   background: none;
   border: none;
-  color: #64748b;
+  color: #475569;
   text-decoration: none;
   cursor: pointer;
   font-size: 0.875rem;
@@ -182,7 +202,7 @@
 }
 
 .btn.btn-link:hover {
-  color: #334155;
+  color: #94a3b8;
   text-decoration: underline;
 }
 
@@ -218,7 +238,7 @@
 .divider {
   position: relative;
   text-align: center;
-  margin: 2rem 0;
+  margin: 1.75rem 0;
 }
 
 .divider::before {
@@ -228,24 +248,53 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: #e2e8f0;
+  background: #1a2a3a;
 }
 
 .divider span {
   position: relative;
-  background: #fff;
+  background: rgba(14, 24, 42, 0.95);
   padding: 0 1rem;
-  color: #94a3b8;
-  font-size: 0.9rem;
+  color: #475569;
+  font-size: 0.85rem;
   font-weight: 500;
 }
 
 .auth-note {
   text-align: center;
-  color: #94a3b8;
+  color: #475569;
   font-size: 0.875rem;
   margin-top: 1.5rem;
   margin-bottom: 0;
+}
+
+/* Alert overrides for dark theme */
+.auth-card .alert {
+  border-radius: 10px;
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+}
+
+.auth-card .alert-warning {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  color: #fbbf24;
+}
+
+.auth-card .alert-success {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+}
+
+.auth-card .alert-info {
+  background: rgba(6, 182, 212, 0.07);
+  border: 1px solid rgba(6, 182, 212, 0.22);
+  color: #67e8f9;
+}
+
+.auth-card .alert strong {
+  font-weight: 700;
 }
 
 .social-links {

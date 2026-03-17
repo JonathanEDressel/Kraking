@@ -8,18 +8,21 @@ class CommandsController {
   private balances: Record<string, string> = {};
   private withdrawalMinimums: Record<string, number> = {};
 
+  // Commands page manages its own exchange-scoped data
+  private selectedConnectionId: number | null = null;
+  private localOpenOrders: any[] = [];
+  private localWithdrawalAddresses: any[] = [];
+
   constructor() {
     this.init();
   }
 
   private init(): void {
     this.attachEventListeners();
-    this.populateOrderDropdown();
+    this.initExchangeSelector();
     this.loadRules();
     this.loadLogs();
-    this.loadWithdrawalMinimums();
-
-    this.unsubscribe = KrakenStore.onUpdate(() => this.populateOrderDropdown());
+    HelpTooltip.init();
 
     const observer = new MutationObserver(() => {
       if (!document.getElementById('create-rule-form')) {
@@ -29,6 +32,79 @@ class CommandsController {
     });
     const content = document.getElementById('app-content');
     if (content) observer.observe(content, { childList: true });
+  }
+
+  private initExchangeSelector(): void {
+    const selector = document.getElementById('commands-exchange-selector') as HTMLSelectElement;
+    if (!selector) return;
+
+    const connections = ExchangeStore.connections;
+    selector.innerHTML = '';
+
+    if (connections.length === 0) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.disabled = true;
+      opt.selected = true;
+      opt.textContent = 'No validated exchanges';
+      selector.appendChild(opt);
+      return;
+    }
+
+    for (const conn of connections) {
+      const opt = document.createElement('option');
+      opt.value = conn.id.toString();
+      const label = conn.label && conn.label !== 'Default' ? conn.label : conn.exchange_name;
+      opt.textContent = label;
+      selector.appendChild(opt);
+    }
+
+    // Default: use header selection if it's a specific exchange, else first connection
+    const headerMode = ExchangeStore.activeMode;
+    if (typeof headerMode === 'number' && connections.find(c => c.id === headerMode)) {
+      selector.value = headerMode.toString();
+    } else {
+      selector.value = connections[0].id.toString();
+    }
+
+    selector.addEventListener('change', () => this.onExchangeChanged());
+    this.onExchangeChanged();
+
+    // Update subtitle
+    this.updateSubtitle();
+  }
+
+  private onExchangeChanged(): void {
+    const selector = document.getElementById('commands-exchange-selector') as HTMLSelectElement;
+    if (!selector || !selector.value) return;
+    this.selectedConnectionId = parseInt(selector.value, 10);
+    this.resetDependentFields();
+    this.loadExchangeData();
+    this.updateSubtitle();
+  }
+
+  private updateSubtitle(): void {
+    const subtitle = document.getElementById('commands-subtitle');
+    if (subtitle && this.selectedConnectionId) {
+      const name = ExchangeStore.getExchangeName(this.selectedConnectionId);
+      subtitle.textContent = `Automation rules for your ${name} orders`;
+    }
+  }
+
+  private async loadExchangeData(): Promise<void> {
+    if (!this.selectedConnectionId) return;
+    try {
+      this.localOpenOrders = await ExchangeController.getOpenOrders(this.selectedConnectionId);
+    } catch {
+      this.localOpenOrders = [];
+    }
+    try {
+      this.localWithdrawalAddresses = await ExchangeController.getWithdrawalAddresses(this.selectedConnectionId);
+    } catch {
+      this.localWithdrawalAddresses = [];
+    }
+    this.populateOrderDropdown();
+    this.loadWithdrawalMinimums();
   }
 
   private attachEventListeners(): void {
@@ -63,6 +139,22 @@ class CommandsController {
 
     document.getElementById('trigger-asset')?.addEventListener('change', () => {
       this.onTriggerAssetChanged();
+    });
+
+    document.getElementById('action-type')?.addEventListener('change', () => {
+      this.onActionTypeChanged();
+    });
+
+    document.getElementById('convert-to-asset')?.addEventListener('change', () => {
+      this.updateRuleSummary();
+    });
+
+    document.querySelectorAll('input[name="convert-amount-mode"]').forEach((radio) => {
+      radio.addEventListener('change', () => this.updateRuleSummary());
+    });
+
+    document.getElementById('convert-amount')?.addEventListener('input', () => {
+      this.updateRuleSummary();
     });
 
     document.getElementById('rule-name')?.addEventListener('input', () => {
@@ -110,7 +202,7 @@ class CommandsController {
     if (!select) return;
 
     const previousValue = select.value;
-    const orders = KrakenStore.openOrders;
+    const orders = this.localOpenOrders;
 
     select.innerHTML = '';
 
@@ -138,9 +230,8 @@ class CommandsController {
     for (const o of sortedOrders) {
       const opt = document.createElement('option');
       opt.value = o.id;
-      const pairDisplay = this.formatPair(o.pair);
       const check = this.ruleOrderIds.has(o.id) ? '\u2705 ' : '';
-      opt.textContent = `${check}${o.id.substring(0, 10)}... (${o.side} ${o.volume} ${pairDisplay} @ ${o.price})`;
+      opt.textContent = `${check}${o.id.substring(0, 10)}... (${o.side} ${o.volume} ${o.pair} @ ${o.price})`;
       select.appendChild(opt);
     }
 
@@ -160,7 +251,7 @@ class CommandsController {
 
     const select = document.getElementById('trigger-order-id') as HTMLSelectElement;
     const orderId = select.value;
-    const order = KrakenStore.openOrders.find((o: any) => o.id === orderId);
+    const order = this.localOpenOrders.find((o: any) => o.id === orderId);
 
     if (!order) {
       this.resetDependentFields();
@@ -184,7 +275,7 @@ class CommandsController {
     assetSelect.disabled = false;
     const opt = document.createElement('option');
     opt.value = receivedAsset;
-    opt.textContent = this.normalizeBase(receivedAsset);
+    opt.textContent = receivedAsset;
     opt.selected = true;
     assetSelect.appendChild(opt);
 
@@ -196,7 +287,7 @@ class CommandsController {
     // Check if max amount is below the minimum withdrawal
     const minWithdrawal = this.getMinForAsset(receivedAsset);
     if (minWithdrawal > 0 && this.maxAmount < minWithdrawal) {
-      this.showMinWarning(`Maximum possible amount (${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}) is below the minimum withdrawal of ${this.formatMin(minWithdrawal)} ${this.normalizeBase(receivedAsset)}`);
+      this.showMinWarning(`Maximum possible amount (${this.maxAmount.toFixed(6)} ${receivedAsset}) is below the minimum withdrawal of ${this.formatMin(minWithdrawal)} ${receivedAsset}`);
       this.setCreateButtonEnabled(false);
     } else {
       this.clearMinWarning();
@@ -210,7 +301,7 @@ class CommandsController {
     this.onAmountModeChanged();
 
     const hint = document.getElementById('amount-hint');
-    if (hint) hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}`;
+    if (hint) hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${receivedAsset}`;
 
     this.updateRuleSummary();
   }
@@ -220,7 +311,7 @@ class CommandsController {
     select.innerHTML = '';
     select.disabled = false;
 
-    const addresses = KrakenStore.withdrawalAddresses;
+    const addresses = this.localWithdrawalAddresses;
 
     if (addresses.length === 0) {
       const opt = document.createElement('option');
@@ -243,8 +334,91 @@ class CommandsController {
     for (const addr of addresses) {
       const opt = document.createElement('option');
       opt.value = addr.nickname_key;
-      opt.textContent = `${addr.nickname_key} (${this.normalizeBase(addr.asset)} - ${addr.method})`;
+      opt.textContent = `${addr.nickname_key} (${addr.asset} - ${addr.method})`;
       select.appendChild(opt);
+    }
+  }
+
+  private onActionTypeChanged(): void {
+    const triggerType = (document.getElementById('trigger-type') as HTMLSelectElement)?.value;
+    const actionType = (document.getElementById('action-type') as HTMLSelectElement)?.value;
+    const withdrawFields = document.getElementById('withdraw-fields');
+    const convertFields = document.getElementById('convert-fields');
+    const amountModeSection = document.getElementById('amount-mode-section');
+
+    const convertAmountSection = document.getElementById('convert-amount-section');
+
+    if (actionType === 'convert_crypto' && triggerType === 'balance_threshold') {
+      withdrawFields?.classList.add('d-none');
+      convertFields?.classList.remove('d-none');
+      amountModeSection?.classList.add('d-none');
+      convertAmountSection?.classList.remove('d-none');
+      this.populateConvertDropdowns();
+      this.updateConvertAmountHint();
+    } else {
+      convertFields?.classList.add('d-none');
+      convertAmountSection?.classList.add('d-none');
+      withdrawFields?.classList.remove('d-none');
+      if (triggerType !== 'balance_threshold') {
+        amountModeSection?.classList.remove('d-none');
+      }
+    }
+    this.updateRuleSummary();
+  }
+
+  private populateConvertDropdowns(): void {
+    const fromSelect = document.getElementById('convert-from-asset') as HTMLSelectElement;
+    const toSelect = document.getElementById('convert-to-asset') as HTMLSelectElement;
+    if (!fromSelect || !toSelect) return;
+
+    const triggerAsset = (document.getElementById('trigger-asset') as HTMLSelectElement)?.value;
+
+    // From asset locked to trigger asset
+    fromSelect.innerHTML = '';
+    if (triggerAsset) {
+      const opt = document.createElement('option');
+      opt.value = triggerAsset;
+      opt.textContent = triggerAsset;
+      opt.selected = true;
+      fromSelect.appendChild(opt);
+      fromSelect.disabled = true;
+    } else {
+      fromSelect.innerHTML = '<option value="" disabled selected>Select a trigger asset first</option>';
+      fromSelect.disabled = true;
+    }
+
+    // To asset: all balance assets except the trigger asset
+    toSelect.innerHTML = '';
+    toSelect.disabled = false;
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = 'Select target asset...';
+    toSelect.appendChild(placeholder);
+
+    for (const asset of Object.keys(this.balances)) {
+      if (asset === triggerAsset) continue;
+      const opt = document.createElement('option');
+      opt.value = asset;
+      opt.textContent = asset;
+      toSelect.appendChild(opt);
+    }
+  }
+
+  private onConvertAmountModeChanged(): void {
+    // No longer used — kept as no-op for any stale listeners
+  }
+
+  private updateConvertAmountHint(): void {
+    const hint = document.getElementById('convert-amount-hint');
+    const triggerAsset = (document.getElementById('trigger-asset') as HTMLSelectElement)?.value;
+    const balance = triggerAsset ? this.balances[triggerAsset] : null;
+    if (hint && balance) {
+      hint.textContent = `Available: ${parseFloat(balance).toFixed(8)} ${triggerAsset}`;
+    } else if (hint) {
+      hint.textContent = '';
     }
   }
 
@@ -258,6 +432,11 @@ class CommandsController {
       orderSection?.classList.add('d-none');
       balanceSections.forEach(el => el.classList.remove('d-none'));
       amountModeSection?.classList.add('d-none');
+
+      // Enable Convert Crypto option for balance threshold
+      const actionTypeSelectBT = document.getElementById('action-type') as HTMLSelectElement;
+      const convertOptionBT = actionTypeSelectBT?.querySelector('option[value="convert_crypto"]') as HTMLOptionElement;
+      if (convertOptionBT) convertOptionBT.disabled = false;
 
       this.selectedOrder = null;
       this.maxAmount = 0;
@@ -292,6 +471,15 @@ class CommandsController {
       balanceSections.forEach(el => el.classList.add('d-none'));
       amountModeSection?.classList.remove('d-none');
 
+      // Disable and deselect Convert Crypto option
+      const actionTypeSelectOF = document.getElementById('action-type') as HTMLSelectElement;
+      const convertOptionOF = actionTypeSelectOF?.querySelector('option[value="convert_crypto"]') as HTMLOptionElement;
+      if (convertOptionOF) convertOptionOF.disabled = true;
+      if (actionTypeSelectOF && actionTypeSelectOF.value === 'convert_crypto') {
+        actionTypeSelectOF.value = 'withdraw_crypto';
+        this.onActionTypeChanged();
+      }
+
       this.resetDependentFields();
 
       // Re-enable trigger-asset and threshold
@@ -315,7 +503,7 @@ class CommandsController {
     const thresholdInput = document.getElementById('trigger-threshold') as HTMLInputElement;
 
     try {
-      this.balances = await KrakenController.getBalance();
+      this.balances = await ExchangeController.getBalance(this.selectedConnectionId!);
 
       triggerAssetSelect.innerHTML = '';
       triggerAssetSelect.disabled = false;
@@ -330,7 +518,7 @@ class CommandsController {
       for (const [asset, amount] of Object.entries(this.balances)) {
         const opt = document.createElement('option');
         opt.value = asset;
-        opt.textContent = `${this.normalizeBase(asset)} (Balance: ${parseFloat(amount).toFixed(8)})`;
+        opt.textContent = `${asset} (Balance: ${parseFloat(amount).toFixed(8)})`;
         triggerAssetSelect.appendChild(opt);
       }
 
@@ -360,18 +548,25 @@ class CommandsController {
 
     const opt = document.createElement('option');
     opt.value = selectedAsset;
-    opt.textContent = this.normalizeBase(selectedAsset);
+    opt.textContent = selectedAsset;
     opt.selected = true;
     assetSelect.appendChild(opt);
 
     const balance = this.balances[selectedAsset];
     const thresholdHint = document.getElementById('threshold-hint');
     if (thresholdHint && balance) {
-      thresholdHint.textContent = `Current balance: ${parseFloat(balance).toFixed(8)} ${this.normalizeBase(selectedAsset)}`;
+      thresholdHint.textContent = `Current balance: ${parseFloat(balance).toFixed(8)} ${selectedAsset}`;
     }
 
     // Show minimum withdrawal hint for balance threshold
     this.updateMinWithdrawalHint(selectedAsset);
+
+    // Refresh convert dropdowns if convert mode is active
+    const actionTypeVal = (document.getElementById('action-type') as HTMLSelectElement)?.value;
+    if (actionTypeVal === 'convert_crypto') {
+      this.populateConvertDropdowns();
+      this.updateConvertAmountHint();
+    }
 
     this.updateRuleSummary();
   }
@@ -395,7 +590,7 @@ class CommandsController {
       if (hint && this.selectedOrder) {
         const { base, quote } = this.parsePair(this.selectedOrder.pair);
         const receivedAsset = this.selectedOrder.side === 'sell' ? quote : base;
-        hint.textContent = `Est. max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}`;
+        hint.textContent = `Est. max ${this.maxAmount.toFixed(6)} ${receivedAsset}`;
       }
       if (modeHint) modeHint.textContent = 'Withdraws the actual filled amount when the order completes';
     } else {
@@ -417,7 +612,7 @@ class CommandsController {
         if (hint) {
           const { base, quote } = this.parsePair(this.selectedOrder.pair);
           const receivedAsset = this.selectedOrder.side === 'sell' ? quote : base;
-          hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${this.normalizeBase(receivedAsset)}`;
+          hint.textContent = `Max ${this.maxAmount.toFixed(6)} ${receivedAsset}`;
         }
       }
       if (modeHint) modeHint.textContent = '';
@@ -515,43 +710,8 @@ class CommandsController {
 
   private parsePair(pair: string): { base: string; quote: string } {
     if (!pair) return { base: '', quote: '' };
-
-    const QUOTE_CURRENCIES = ['USDT', 'USDC', 'DAI', 'BUSD', 'USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'CHF'];
-
-    let cleaned = pair;
-    if (cleaned.startsWith('XX') && cleaned.length > 6) {
-      cleaned = cleaned.substring(1);
-    } else if (cleaned.startsWith('X') && cleaned.length > 6 && !cleaned.startsWith('XBT') && !cleaned.startsWith('XDG')) {
-      cleaned = cleaned.substring(1);
-    }
-
-    for (const quote of QUOTE_CURRENCIES) {
-      const zQuote = 'Z' + quote;
-      if (cleaned.endsWith(zQuote)) {
-        return { base: cleaned.substring(0, cleaned.length - zQuote.length), quote };
-      }
-      if (cleaned.endsWith(quote)) {
-        return { base: cleaned.substring(0, cleaned.length - quote.length), quote };
-      }
-    }
-
-    if (cleaned.length >= 6) {
-      return { base: cleaned.substring(0, cleaned.length - 3), quote: cleaned.substring(cleaned.length - 3) };
-    }
-
-    return { base: cleaned, quote: '' };
-  }
-
-  private formatPair(pair: string): string {
-    const { base, quote } = this.parsePair(pair);
-    if (!quote) return this.normalizeBase(base);
-    return `${this.normalizeBase(base)}/${quote}`;
-  }
-
-  private normalizeBase(base: string): string {
-    if (base === 'XBT' || base === 'XXBT') return 'BTC';
-    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
-    return base;
+    const parts = pair.split('/');
+    return { base: parts[0] || pair, quote: parts[1] || '' };
   }
 
   private async createRule(): Promise<void> {
@@ -561,8 +721,15 @@ class CommandsController {
     const actionAsset = (document.getElementById('action-asset') as HTMLSelectElement).value;
     const actionAddressKey = (document.getElementById('action-address-key') as HTMLSelectElement).value;
 
-    if (!ruleName || !actionAsset || !actionAddressKey) {
+    const isConvert = actionType === 'convert_crypto';
+    if (!ruleName || (!isConvert && (!actionAsset || !actionAddressKey))) {
       this.showError('Please fill in all required fields');
+      return;
+    }
+
+    const connectionId = this.selectedConnectionId;
+    if (!connectionId) {
+      this.showError('No exchange selected');
       return;
     }
 
@@ -572,6 +739,8 @@ class CommandsController {
       action_type: actionType,
       action_asset: actionAsset,
       action_address_key: actionAddressKey,
+      trigger_exchange_id: connectionId,
+      action_exchange_id: connectionId,
     };
 
     if (triggerType === 'balance_threshold') {
@@ -597,7 +766,27 @@ class CommandsController {
       payload.trigger_asset = triggerAsset;
       payload.trigger_threshold = triggerThreshold;
       payload.cooldown_minutes = totalCooldown;
-      payload.action_amount = '';
+
+      if (isConvert) {
+        const convertTo = (document.getElementById('convert-to-asset') as HTMLSelectElement).value;
+        if (!convertTo) {
+          this.showError('Please select a target asset to convert to');
+          return;
+        }
+        payload.action_asset = triggerAsset;
+        payload.action_address_key = '';
+        payload.convert_to_asset = convertTo;
+
+        const convertAmount = (document.getElementById('convert-amount') as HTMLInputElement).value.trim();
+        if (convertAmount && parseFloat(convertAmount) > 0) {
+          payload.action_amount = convertAmount;
+        } else {
+          payload.action_amount = '';
+        }
+      } else {
+        payload.action_amount = '';
+      }
+
       payload.use_filled_amount = false;
     } else {
       const triggerOrderId = (document.getElementById('trigger-order-id') as HTMLSelectElement).value;
@@ -636,10 +825,10 @@ class CommandsController {
           }
         }
 
-        // Validate against Kraken minimum withdrawal (with cushion)
+        // Validate against minimum withdrawal (with cushion)
         const minWithdrawal = this.getMinForAsset(actionAsset);
         if (minWithdrawal > 0 && amount < minWithdrawal) {
-          this.showError(`Amount ${amount} is below the minimum withdrawal of ${minWithdrawal.toFixed(6)} ${this.normalizeBase(actionAsset)} (includes buffer)`);
+          this.showError(`Amount ${amount} is below the minimum withdrawal of ${minWithdrawal.toFixed(6)} ${actionAsset} (includes buffer)`);
           return;
         }
       }
@@ -697,7 +886,7 @@ class CommandsController {
       const triggerText = this.formatTrigger(r);
       const actionText = this.formatAction(r);
       const triggered = r.trigger_count > 0
-        ? `${r.trigger_count}x (${new Date(r.last_triggered_at).toLocaleString()})`
+        ? `${r.trigger_count}x (${new Date(r.last_triggered_at.endsWith('Z') ? r.last_triggered_at : r.last_triggered_at + 'Z').toLocaleString()})`
         : 'Never';
 
       return `<tr>
@@ -726,7 +915,7 @@ class CommandsController {
       return `<span class="trigger-badge">Order Filled</span> <span class="mono-text">${orderId}</span>`;
     }
     if (rule.trigger_type === 'balance_threshold') {
-      const asset = this.normalizeBase(rule.trigger_asset || '');
+      const asset = rule.trigger_asset || '';
       const threshold = rule.trigger_threshold || '0';
       const cooldown = this.formatCooldown(rule.cooldown_minutes || 1440);
       return `<span class="trigger-badge trigger-badge-balance">Balance ≥</span> `
@@ -748,8 +937,16 @@ class CommandsController {
         amountText = `<strong>${this.escapeHtml(rule.action_amount)}</strong>`;
       }
       return `Withdraw ${amountText} `
-        + `<span class="asset-badge">${this.escapeHtml(this.normalizeBase(rule.action_asset))}</span> `
+        + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
         + `→ ${this.escapeHtml(rule.action_address_key)}`;
+    }
+    if (rule.action_type === 'convert_crypto') {
+      const convertAmountText = rule.action_amount
+        ? `<strong>${this.escapeHtml(rule.action_amount)}</strong>`
+        : '<em>Full Balance</em>';
+      return `Convert ${convertAmountText} `
+        + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
+        + `→ <span class="asset-badge">${this.escapeHtml(rule.convert_to_asset || '?')}</span>`;
     }
     return this.escapeHtml(rule.action_type);
   }
@@ -798,7 +995,7 @@ class CommandsController {
     }
 
     tbody.innerHTML = logs.map((l: any) => {
-      const time = l.created_at ? new Date(l.created_at).toLocaleString() : '--';
+      const time = l.created_at ? new Date(l.created_at.endsWith('Z') ? l.created_at : l.created_at + 'Z').toLocaleString() : '--';
       const statusClass = l.status === 'success' ? 'log-success' : 'log-error';
 
       return `<tr>
@@ -899,17 +1096,7 @@ class CommandsController {
 
   private getMinForAsset(asset: string): number {
     if (!asset) return 0;
-    // Try exact match, then try stripping X/Z prefix (Kraken balance prefixes)
-    if (this.withdrawalMinimums[asset]) return this.withdrawalMinimums[asset];
-    if (asset.length > 3 && asset.startsWith('X')) {
-      const stripped = asset.substring(1);
-      if (this.withdrawalMinimums[stripped]) return this.withdrawalMinimums[stripped];
-    }
-    if (asset.length > 3 && asset.startsWith('Z')) {
-      const stripped = asset.substring(1);
-      if (this.withdrawalMinimums[stripped]) return this.withdrawalMinimums[stripped];
-    }
-    return 0;
+    return this.withdrawalMinimums[asset] || 0;
   }
 
   private updateMinWithdrawalHint(asset: string): void {
@@ -917,7 +1104,7 @@ class CommandsController {
     if (!hint) return;
     const min = this.getMinForAsset(asset);
     if (min > 0) {
-      hint.textContent = `Min withdrawal: ${this.formatMin(min)} ${this.normalizeBase(asset)} (incl. buffer)`;
+      hint.textContent = `Min withdrawal: ${this.formatMin(min)} ${asset} (incl. buffer)`;
     } else {
       hint.textContent = '';
     }
@@ -941,7 +1128,7 @@ class CommandsController {
 
     const amount = parseFloat(amountInput.value);
     if (!isNaN(amount) && amount < minW) {
-      this.showMinWarning(`Amount ${amount} is below the minimum withdrawal of ${this.formatMin(minW)} ${this.normalizeBase(actionAsset)}`);
+      this.showMinWarning(`Amount ${amount} is below the minimum withdrawal of ${this.formatMin(minW)} ${actionAsset}`);
       this.setCreateButtonEnabled(false);
     } else {
       this.clearMinWarning();
@@ -981,9 +1168,10 @@ class CommandsController {
 
     const triggerType = (document.getElementById('trigger-type') as HTMLSelectElement)?.value;
     const addressKey = (document.getElementById('action-address-key') as HTMLSelectElement)?.value;
+    const actionTypeForSummary = (document.getElementById('action-type') as HTMLSelectElement)?.value;
 
-    // Hide summary if no address selected (minimum required field for both modes)
-    if (!addressKey) {
+    // Hide summary if no address selected (except for convert mode)
+    if (!addressKey && actionTypeForSummary !== 'convert_crypto') {
       summaryContainer.classList.add('d-none');
       return;
     }
@@ -1002,10 +1190,19 @@ class CommandsController {
         return;
       }
 
-      const assetDisplay = this.normalizeBase(triggerAsset);
+      const assetDisplay = triggerAsset;
       const cooldownDisplay = this.formatCooldown(totalCooldown);
       
-      summary = `When ${assetDisplay} balance reaches ${parseFloat(threshold).toFixed(8).replace(/\.?0+$/, '')}, wait ${cooldownDisplay}, then withdraw full balance to ${addressKey}`;
+      if (actionTypeForSummary === 'convert_crypto') {
+        const convertTo = (document.getElementById('convert-to-asset') as HTMLSelectElement)?.value || '___';
+        const convertAmountVal = (document.getElementById('convert-amount') as HTMLInputElement)?.value;
+        const convertAmountDisplay = (convertAmountVal && parseFloat(convertAmountVal) > 0)
+          ? `${parseFloat(convertAmountVal).toFixed(8).replace(/\.?0+$/, '')} ${assetDisplay}`
+          : `full ${assetDisplay} balance`;
+        summary = `When ${assetDisplay} balance reaches ${parseFloat(threshold).toFixed(8).replace(/\.?0+$/, '')}, wait ${cooldownDisplay}, then convert ${convertAmountDisplay} to ${convertTo}`;
+      } else {
+        summary = `When ${assetDisplay} balance reaches ${parseFloat(threshold).toFixed(8).replace(/\.?0+$/, '')}, wait ${cooldownDisplay}, then withdraw full balance to ${addressKey}`;
+      }
     } else {
       // order_filled
       const orderId = (document.getElementById('trigger-order-id') as HTMLSelectElement)?.value;
@@ -1019,7 +1216,7 @@ class CommandsController {
       }
 
       const orderIdShort = orderId.substring(0, 10) + '...';
-      const assetDisplay = this.normalizeBase(actionAsset);
+      const assetDisplay = actionAsset;
 
       if (amountMode === 'filled') {
         summary = `When order ${orderIdShort} fills, withdraw filled amount of ${assetDisplay} to ${addressKey}`;

@@ -10,7 +10,7 @@ class WhitelistController {
   private init(): void {
     this.render();
 
-    this.unsubscribe = KrakenStore.onUpdate(() => this.render());
+    this.unsubscribe = ExchangeStore.onUpdate(() => this.render());
 
     const observer = new MutationObserver(() => {
       if (!document.getElementById('addresses-table')) {
@@ -23,16 +23,35 @@ class WhitelistController {
   }
 
   private render(): void {
-    const addresses = KrakenStore.withdrawalAddresses;
-    const error = KrakenStore.error;
-    const lastUpdated = KrakenStore.lastUpdated;
+    const addresses = ExchangeStore.withdrawalAddresses;
+    const error = ExchangeStore.error;
+    const lastUpdated = ExchangeStore.lastUpdated;
+    const isAll = ExchangeStore.isAllMode();
+
+    // Update subtitle
+    const subtitle = document.getElementById('page-subtitle');
+    if (subtitle) {
+      const label = isAll ? '' : ` on ${ExchangeStore.getExchangeName(ExchangeStore.activeMode as number)}`;
+      const refreshSpan = document.getElementById('refresh-label');
+      const refreshHtml = refreshSpan ? refreshSpan.outerHTML : '';
+      subtitle.innerHTML = `Your withdrawal addresses${this.escapeHtml(label)} ${refreshHtml}`;
+    }
+
+    // Update thead for exchange column
+    const thead = document.getElementById('addresses-thead');
+    if (thead) {
+      const cols = isAll
+        ? '<tr><th>Exchange</th><th>Asset</th><th>Method / Address</th><th>Name</th><th>Method</th><th>Verified</th></tr>'
+        : '<tr><th>Asset</th><th>Method / Address</th><th>Name</th><th>Method</th><th>Verified</th></tr>';
+      thead.innerHTML = cols;
+    }
 
     if (error) {
       this.showError(error);
       this.setRefreshLabel('');
     } else {
       this.hideError();
-      this.renderAddresses(addresses);
+      this.renderAddresses(addresses, isAll);
       this.updateCountTitle(addresses.length);
       if (lastUpdated) {
         this.setRefreshLabel(`Last updated: ${lastUpdated.toLocaleTimeString()}`);
@@ -40,29 +59,28 @@ class WhitelistController {
     }
   }
 
-  private renderAddresses(addresses: any[]): void {
+  private renderAddresses(addresses: any[], isAll: boolean): void {
     const tbody = document.getElementById('addresses-tbody');
     if (!tbody) return;
 
+    const colspan = isAll ? 6 : 5;
     if (addresses.length === 0) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="4">No whitelisted withdrawal methods configured</td></tr>';
+      tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">No whitelisted withdrawal methods configured</td></tr>`;
       return;
     }
 
     tbody.innerHTML = addresses.map((a: any) => {
-      const limit = a.limit && a.limit !== '0' && a.limit !== 'false' 
-        ? this.escapeHtml(a.limit) 
-        : 'No limit';
-      const fee = a.fee && a.fee !== '0' && a.fee !== 'false'
-        ? this.escapeHtml(a.fee)
-        : 'No fee';
+      const exchangeCol = isAll
+        ? `<td><span class="exchange-badge exchange-${this.escapeHtml(a.exchangeName).toLowerCase()}">${this.escapeHtml(a.exchangeName)}</span></td>`
+        : '';
       
       return `<tr>
-        <td><span class="asset-badge">${this.escapeHtml(this.normalizeBase(a.asset))}</span></td>
+        ${exchangeCol}
+        <td><span class="asset-badge">${this.escapeHtml(a.asset)}</span></td>
         <td class="address-cell">${this.escapeHtml(a.address)}</td>
         <td class="address-cell">${this.escapeHtml(a.nickname_key)}</td>
-        <td>${a.method}</td>
-        <td>${a.verified}</td>
+        <td>${this.escapeHtml(a.method)}</td>
+        <td>${this.escapeHtml(String(a.verified))}</td>
       </tr>`;
     }).join('');
   }
@@ -99,12 +117,6 @@ class WhitelistController {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-  }
-
-  private normalizeBase(base: string): string {
-    if (base === 'XBT' || base === 'XXBT') return 'BTC';
-    if (base === 'XDG' || base === 'XXDG') return 'DOGE';
-    return base;
   }
 }
 

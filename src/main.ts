@@ -14,7 +14,7 @@ function getBackendPath(): string {
     return '';
   } else {
     // Production: Bundled executable in resources
-    return path.join(process.resourcesPath, 'backend', 'KrakingServer.exe');
+    return path.join(process.resourcesPath, 'backend', 'CyrusServer.exe');
   }
 }
 
@@ -88,6 +88,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, '../src/assets/icon.ico'),
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -98,11 +100,11 @@ function createWindow() {
   const indexPath = path.join(__dirname, '../src/index.html');
 
   mainWindow.loadFile(indexPath);
-  
-  const isDev = !app.isPackaged;
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.maximize();
+    mainWindow?.show();
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;

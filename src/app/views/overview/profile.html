@@ -26,27 +26,76 @@
 
     <section class="profile-section">
       <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-key me-2"></i>Kraken API Keys</h2>
+        <h2 class="section-title"><i class="fa-solid fa-plug me-2"></i>Exchange Connections</h2>
       </div>
       <div class="alert alert-success d-none" data-alert="keys-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
       <div class="alert alert-warning d-none" data-alert="keys-error"><span></span></div>
+
+      <!-- Existing connections list -->
+      <div id="connections-list" class="profile-card mb-3">
+        <p class="text-muted">Loading connections...</p>
+      </div>
+
+      <!-- Add new connection form -->
       <div class="profile-card">
-        <form id="keys-form" onsubmit="return false;">
+        <h3 class="subsection-title" style="color: white;">Add New Connection</h3>
+        <form id="add-connection-form" onsubmit="return false;">
           <div class="form-group">
-            <label for="profile-api-key" class="form-label">API Key</label>
-            <input id="profile-api-key" type="password" class="form-control" placeholder="Enter Kraken API key" />
+            <label for="new-exchange-name" class="form-label">Exchange</label>
+            <select id="new-exchange-name" class="form-control">
+              <option value="" disabled selected>Loading exchanges...</option>
+            </select>
           </div>
           <div class="form-group">
-            <label for="profile-private-key" class="form-label">Private Key</label>
-            <input id="profile-private-key" type="password" class="form-control" placeholder="Enter Kraken private key" />
+            <label for="new-connection-label" class="form-label">Label (optional)</label>
+            <input id="new-connection-label" type="text" class="form-control" placeholder="e.g. Main Account, Trading" />
           </div>
-          <button type="button" class="btn btn-primary" id="save-keys-btn">
-            Save Keys <i class="fa-solid fa-floppy-disk ms-2"></i>
-          </button>
-          <button type="button" class="btn btn-secondary" id="validate-keys-btn">
-            Test Connection <i class="fa-solid fa-plug ms-2"></i>
+          <div class="form-group">
+            <label for="new-api-key" class="form-label">API Key</label>
+            <input id="new-api-key" type="password" class="form-control" placeholder="Enter API key" />
+          </div>
+          <div class="form-group">
+            <label for="new-private-key" class="form-label">Private Key / Secret</label>
+            <input id="new-private-key" type="password" class="form-control" placeholder="Enter private key" />
+          </div>
+          <div class="form-group d-none" id="passphrase-group">
+            <label for="new-passphrase" class="form-label">Passphrase</label>
+            <input id="new-passphrase" type="password" class="form-control" placeholder="Enter passphrase (if required)" />
+          </div>
+          <div class="form-group d-none" id="sandbox-group">
+            <div class="form-check mt-1">
+              <input class="form-check-input" type="checkbox" id="new-is-sandbox" />
+              <label class="form-check-label" for="new-is-sandbox">Use Sandbox / Testnet</label>
+            </div>
+            <small class="form-text text-muted">Connect to the sandbox environment for testing with fake funds</small>
+          </div>
+          <small class="form-text text-muted mt-2">
+            <i class="fa-solid fa-lock"></i> Your API keys are encrypted and stored locally on your device
+          </small>
+          <button type="button" class="btn btn-primary mt-2" id="add-connection-btn">
+            Add Connection <i class="fa-solid fa-plus ms-2"></i>
           </button>
         </form>
+      </div>
+    </section>
+
+    <section class="profile-section">
+      <div class="section-header">
+        <h2 class="section-title"><i class="fa-solid fa-bell me-2"></i>Notifications</h2>
+      </div>
+      <div class="alert alert-success d-none" data-alert="notifications-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
+      <div class="alert alert-warning d-none" data-alert="notifications-error"><span></span></div>
+      <div class="profile-card">
+        <div class="setting-toggle-row">
+          <div class="setting-toggle-info">
+            <span class="setting-toggle-title">Desktop Notifications</span>
+            <span class="setting-toggle-desc">Show a notification when an automation rule executes</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="notifications-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
       </div>
     </section>
 

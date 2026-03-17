@@ -11,18 +11,23 @@ class AutomationDbContext:
                     action_asset: str = None, action_address_key: str = None,
                     action_amount: str = None, use_filled_amount: bool = False,
                     trigger_asset: str = None, trigger_threshold: str = None,
-                    cooldown_minutes: int = 1440) -> int:
+                    cooldown_minutes: int = 1440,
+                    trigger_exchange_id: int = None,
+                    action_exchange_id: int = None,
+                    convert_to_asset: str = None) -> int:
         return execute_insert(
             '''INSERT INTO automation_rules
                (user_id, rule_name, trigger_type, trigger_order_id,
                 trigger_pair, trigger_side, action_type, action_asset,
                 action_address_key, action_amount, use_filled_amount,
-                trigger_asset, trigger_threshold, cooldown_minutes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                trigger_asset, trigger_threshold, cooldown_minutes,
+                trigger_exchange_id, action_exchange_id, convert_to_asset)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (user_id, rule_name, trigger_type, trigger_order_id,
              trigger_pair, trigger_side, action_type, action_asset,
              action_address_key, action_amount, use_filled_amount,
-             trigger_asset, trigger_threshold, cooldown_minutes)
+             trigger_asset, trigger_threshold, cooldown_minutes,
+             trigger_exchange_id, action_exchange_id, convert_to_asset)
         )
 
     @staticmethod
@@ -106,15 +111,16 @@ class AutomationDbContext:
 
     @staticmethod
     def upsert_order_snapshot(user_id: int, order_id: str, pair: str,
-                              side: str, status: str, volume: str, filled: str) -> None:
+                              side: str, status: str, volume: str, filled: str,
+                              exchange_connection_id: int = None) -> None:
         execute_non_query(
-            '''INSERT INTO order_snapshots (user_id, order_id, pair, side, status, volume, filled)
-               VALUES (?, ?, ?, ?, ?, ?, ?)
+            '''INSERT INTO order_snapshots (user_id, order_id, pair, side, status, volume, filled, exchange_connection_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                ON CONFLICT(user_id, order_id) DO UPDATE SET
                  status = excluded.status,
                  filled = excluded.filled,
                  last_checked_at = datetime('now')''',
-            (user_id, order_id, pair, side, status, volume, filled)
+            (user_id, order_id, pair, side, status, volume, filled, exchange_connection_id)
         )
 
     @staticmethod

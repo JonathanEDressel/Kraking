@@ -52,6 +52,7 @@
     viewModel: '../dist/app/viewmodels/overview/commands.js',
     style: 'app/styles/overview/commands.css',
     showChrome: true,
+    showExchangeSelector: false,
     title: 'Custom Commands',
   });
 
@@ -60,20 +61,90 @@
     viewModel: '../dist/app/viewmodels/overview/profile.js',
     style: 'app/styles/overview/profile.css',
     showChrome: true,
+    showExchangeSelector: false,
     title: 'Profile',
+  });
+
+  router.register('privacy', {
+    view: 'app/views/overview/privacy.html',
+    viewModel: '../dist/app/viewmodels/overview/privacy.js',
+    style: 'app/styles/overview/privacy.css',
+    showChrome: true,
+    showExchangeSelector: false,
+    title: 'Privacy',
+  });
+
+  router.register('about', {
+    view: 'app/views/overview/about.html',
+    viewModel: '../dist/app/viewmodels/overview/about.js',
+    style: 'app/styles/overview/about.css',
+    showChrome: true,
+    showExchangeSelector: false,
+    title: 'About',
   });
 
   if (AuthController.isAuthenticated()) {
     ApiKeyWarning.init();
-    // Load key status first, then start KrakenStore only if keys are valid
-    UserController.refreshKeyStatus().then(() => {
+    UserController.refreshKeyStatus().then(async () => {
       if (ApiKeyState.status === 'valid') {
-        KrakenStore.start();
+        try {
+          await ExchangeStore.loadConnections();
+          populateExchangeSelector();
+          const saved = localStorage.getItem('cyrus_exchange_mode');
+          if (saved && saved !== 'all') {
+            const id = parseInt(saved, 10);
+            const valid = ExchangeStore.connections.find(c => c.id === id);
+            if (valid) {
+              ExchangeStore.start(id);
+              setExchangeSelectorValue(saved);
+            } else {
+              ExchangeStore.start('all');
+            }
+          } else if (ExchangeStore.connections.length > 0) {
+            ExchangeStore.start('all');
+          }
+        } catch {}
         NotificationService.start();
       }
     });
+
+    ExchangeStore.onConnectionsChange(() => populateExchangeSelector());
+
+    const selector = document.getElementById('exchange-selector') as HTMLSelectElement;
+    selector?.addEventListener('change', () => {
+      const val = selector.value;
+      localStorage.setItem('cyrus_exchange_mode', val);
+      if (val === 'all') {
+        ExchangeStore.setMode('all');
+      } else {
+        ExchangeStore.setMode(parseInt(val, 10));
+      }
+    });
+
     router.navigate('home');
   } else {
     router.navigate('login');
+  }
+
+  function populateExchangeSelector(): void {
+    const selector = document.getElementById('exchange-selector') as HTMLSelectElement;
+    if (!selector) return;
+    const currentValue = selector.value;
+    selector.innerHTML = '<option value="all">All Exchanges</option>';
+    for (const conn of ExchangeStore.connections) {
+      const opt = document.createElement('option');
+      opt.value = conn.id.toString();
+      const label = conn.label && conn.label !== 'Default' ? conn.label : conn.exchange_name;
+      opt.textContent = label;
+      selector.appendChild(opt);
+    }
+    if (currentValue && Array.from(selector.options).some(o => o.value === currentValue)) {
+      selector.value = currentValue;
+    }
+  }
+
+  function setExchangeSelectorValue(val: string): void {
+    const selector = document.getElementById('exchange-selector') as HTMLSelectElement;
+    if (selector) selector.value = val;
   }
 })();

@@ -13,12 +13,11 @@ class AuthDbContext:
         return UserModel.from_row(row)
     
     @staticmethod
-    def create_user(username: str, password_hash: str,
-                    kraken_api_key_encrypted: str, kraken_private_key_encrypted: str) -> UserModel:
+    def create_user(username: str, password_hash: str) -> UserModel:
         user_id = execute_insert(
-            '''INSERT INTO users (username, password_hash, kraken_api_key_encrypted, kraken_private_key_encrypted)
-               VALUES (?, ?, ?, ?)''',
-            (username, password_hash, kraken_api_key_encrypted, kraken_private_key_encrypted)
+            '''INSERT INTO users (username, password_hash)
+               VALUES (?, ?)''',
+            (username, password_hash)
         )
         
         row = execute_query_one(

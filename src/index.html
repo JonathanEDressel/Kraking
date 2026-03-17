@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; font-src 'self' https://cdnjs.cloudflare.com; img-src 'self' data:; connect-src 'self' http://127.0.0.1:5000">
-  <title>Kraking</title>
+  <title>Crus</title>
   <link rel="stylesheet" href="app/styles/main.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -12,15 +12,17 @@
   <header id="app-header" class="app-header d-none">
     <div class="header-inner">
       <div class="header-logo">
-        <img src="assets/images/kraking-logo.png" alt="Kraking" onerror="this.style.display='none'" />
-        <span class="header-brand">Kraking</span>
-      </div>
+          <img src="assets/images/cyrus-logo.png" alt="Cyrus" onerror="this.style.display='none'" />
+          <span class="header-brand">Cyrus</span>
+        </div>
       <nav class="header-nav" id="header-nav">
         <a href="#" data-route="home" class="nav-link"><i class="fa-solid fa-house"></i> Home</a>
         <a href="#" data-route="openorders" class="nav-link"><i class="fa-solid fa-clock-rotate-left"></i> Open Orders</a>
         <a href="#" data-route="whitelist" class="nav-link"><i class="fa-solid fa-address-book"></i> Whitelisted Addresses</a>
         <a href="#" data-route="commands" class="nav-link"><i class="fa-solid fa-bolt"></i> Custom Commands</a>
         <a href="#" data-route="profile" class="nav-link"><i class="fa-solid fa-user"></i> Profile</a>
+        <a href="#" data-route="privacy" class="nav-link"><i class="fa-solid fa-user-secret"></i> Privacy</a>
+        <a href="#" data-route="about" class="nav-link"><i class="fa-solid fa-cross"></i> About</a>
       </nav>
       <div class="header-actions" id="header-actions">
         <button class="header-user-btn" id="logout-btn">
@@ -47,9 +49,16 @@
 
   <main id="app-content"></main>
 
+  <div id="exchange-panel" class="exchange-panel d-none">
+    <label class="exchange-panel-label">Exchange</label>
+    <select id="exchange-selector" class="exchange-selector">
+      <option value="all">All Exchanges</option>
+    </select>
+  </div>
+
   <footer id="app-footer" class="app-footer d-none">
     <div class="footer-inner">
-      <span>&copy; 2026 Kraking. All rights reserved.</span>
+      <span>&copy; 2026 Cyrus. All rights reserved.</span>
       <div class="footer-links">
         <a href="#" data-route="privacy">Privacy</a>
         <a href="#" data-route="terms">Terms</a>
@@ -63,13 +72,13 @@
     </button>
     <div class="donation-modal d-none" id="donation-modal">
       <div class="donation-header">
-        <h3><i class="fa-solid fa-heart me-2"></i>Support Kraking</h3>
+        <h3><i class="fa-solid fa-heart me-2"></i>Support Cyrus</h3>
         <button class="donation-close" id="donation-close">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
       <div class="donation-body">
-        <p class="donation-message">If you find Kraking helpful, consider supporting the project!</p>
+        <p class="donation-message">If you find Cyrus helpful, consider supporting the project! We are constantly working to improve and add new features. We greatly appreciate any support you can provide!</p>
         <div class="donation-option">
           <div class="donation-label"><i class="fa-brands fa-bitcoin"></i> Bitcoin (BTC Network)</div>
           <div class="donation-address-wrapper">
@@ -129,15 +138,16 @@
   <script src="../dist/app/services/dataaccess.js"></script>
   <script src="../dist/app/services/authdata.js"></script>
   <script src="../dist/app/services/userdata.js"></script>
-  <script src="../dist/app/services/krakendata.js"></script>
+  <script src="../dist/app/services/exchangedata.js"></script>
   <script src="../dist/app/services/automationdata.js"></script>
   <script src="../dist/app/services/controllers/authcontroller.js"></script>
   <script src="../dist/app/services/controllers/usercontroller.js"></script>
-  <script src="../dist/app/services/controllers/krakencontroller.js"></script>
+  <script src="../dist/app/services/controllers/exchangecontroller.js"></script>
   <script src="../dist/app/services/controllers/automationcontroller.js"></script>
   <script src="../dist/app/services/apikeywarning.js"></script>
-  <script src="../dist/app/services/krakenstore.js"></script>
+  <script src="../dist/app/services/exchangestore.js"></script>
   <script src="../dist/app/services/notificationservice.js"></script>
+  <script src="../dist/app/services/helptooltip.js"></script>
   <script src="../dist/app/router.js"></script>
   <script src="../dist/app/app.js"></script>
 </body>

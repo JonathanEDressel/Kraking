@@ -32,10 +32,10 @@ class AutomationController {
     return response.data;
   }
 
-  static async getWithdrawalMinimums(): Promise<Record<string, number>> {
+  static async getWithdrawalMinimums(exchangeName?: string): Promise<Record<string, number>> {
     const token = AuthController.getToken();
     if (!token) throw new Error('Not authenticated');
-    const response = await AutomationData.getWithdrawalMinimums(token);
+    const response = await AutomationData.getWithdrawalMinimums(token, exchangeName);
     return response.data;
   }
 }

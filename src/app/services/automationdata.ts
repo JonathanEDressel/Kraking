@@ -36,9 +36,9 @@ class AutomationData {
     );
   }
 
-  static async getWithdrawalMinimums(token: string): Promise<ApiResponse<Record<string, number>>> {
+  static async getWithdrawalMinimums(token: string, exchangeName: string = 'kraken'): Promise<ApiResponse<Record<string, number>>> {
     return DataAccess.get<Record<string, number>>(
-      `${AppConfig.API_BASE}/automation/withdrawal-minimums`,
+      `${AppConfig.API_BASE}/automation/withdrawal-minimums?exchange=${encodeURIComponent(exchangeName)}`,
       token
     );
   }

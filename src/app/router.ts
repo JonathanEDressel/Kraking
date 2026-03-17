@@ -3,6 +3,7 @@ interface RouteConfig {
   viewModel: string;
   style?: string;
   showChrome: boolean;
+  showExchangeSelector?: boolean;
   title: string;
 }
 
@@ -31,10 +32,11 @@ class Router {
 
     this.currentRoute = name;
 
-    document.title = `Kraking - ${route.title}`;
+    document.title = `Cyrus - ${route.title}`;
 
     const header = document.getElementById('app-header');
     const footer = document.getElementById('app-footer');
+    const exchangePanel = document.getElementById('exchange-panel');
     if (route.showChrome) {
       header?.classList.remove('d-none');
       footer?.classList.remove('d-none');
@@ -42,6 +44,13 @@ class Router {
     } else {
       header?.classList.add('d-none');
       footer?.classList.add('d-none');
+    }
+    if (exchangePanel) {
+      if (route.showExchangeSelector === false || !route.showChrome) {
+        exchangePanel.classList.add('d-none');
+      } else {
+        exchangePanel.classList.remove('d-none');
+      }
     }
 
     if (route.style) {

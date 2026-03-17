@@ -1,5 +1,5 @@
 {
-  "name": "kraking",
+  "name": "cyrus",
   "version": "1.0.0",
   "description": "Automated trades and transfers for Kraken exchange",
   "main": "dist/main.js",
@@ -14,8 +14,8 @@
     "build:all": "npm run build && npm run build:backend && npm run dist"
   },
   "build": {
-    "appId": "com.kraking.app",
-    "productName": "Kraking",
+    "appId": "com.cyrus.app",
+    "productName": "Cyrus",
     "directories": {
       "output": "release"
     },
@@ -30,11 +30,12 @@
     ],
     "extraResources": [
       {
-        "from": "src/backend/dist/KrakingServer.exe",
-        "to": "backend/KrakingServer.exe"
+        "from": "src/backend/dist/CyrusServer.exe",
+        "to": "backend/CyrusServer.exe"
       }
     ],
     "win": {
+      "icon": "src/assets/icon.ico",
       "target": [
         "nsis"
       ]

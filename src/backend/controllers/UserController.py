@@ -1,11 +1,10 @@
 from flask import Blueprint, request
 from controllers.UserDbContext import UserDbContext
 from controllers.AuthDbContext import AuthDbContext
-from helper.Security import token_required, hash_password, verify_password, encrypt_api_key, decrypt_api_key
+from controllers.ExchangeConnectionDbContext import ExchangeConnectionDbContext
+from helper.Security import token_required, hash_password, verify_password
 from helper.ErrorHandler import handle_error, bad_request, not_found
 from helper.Helper import success_response
-from helper.KrakenClient import get_account_balance
-import requests as http_requests
 
 user_bp = Blueprint('user', __name__)
 
@@ -19,7 +18,24 @@ def get_profile():
         if not user:
             return not_found("User not found")
         
-        return success_response(data=user.to_dict())
+        profile = user.to_dict()
+
+        # Include exchange connections summary
+        connections = ExchangeConnectionDbContext.get_connections_by_user(request.user_id)
+        profile['exchange_connections'] = [
+            {
+                'id': c['id'],
+                'exchange_name': c['exchange_name'],
+                'label': c['label'],
+                'is_validated': bool(c.get('is_validated', 0)),
+                'is_sandbox': bool(c.get('is_sandbox', 0)),
+                'keys_last_validated': c.get('keys_last_validated'),
+            }
+            for c in connections
+        ]
+        profile['has_validated_connection'] = any(c.get('is_validated') for c in connections)
+
+        return success_response(data=profile)
         
     except Exception as e:
         return handle_error(e)
@@ -87,79 +103,17 @@ def update_username():
         return handle_error(e)
 
 
-@user_bp.route('/update-keys', methods=['PUT'])
+@user_bp.route('/update-notifications', methods=['PUT'])
 @token_required
-def update_kraken_keys():
+def update_notifications():
     try:
         data = request.get_json()
-        
-        if not data:
-            return bad_request("No data provided")
-        
-        api_key = data.get('krakenApiKey', '').strip()
-        private_key = data.get('krakenPrivateKey', '').strip()
-        
-        if not api_key or not private_key:
-            return bad_request("Both API key and private key are required")
-        
-        api_key_encrypted = encrypt_api_key(api_key)
-        private_key_encrypted = encrypt_api_key(private_key)
-        
-        UserDbContext.update_kraken_keys(request.user_id, api_key_encrypted, private_key_encrypted)
-        UserDbContext.clear_keys_validation(request.user_id)
-        
-        return success_response(message="Kraken API keys updated successfully")
-        
-    except Exception as e:
-        return handle_error(e)
-
-
-AUTH_ERROR_KEYWORDS = [
-    'EAPI:INVALID KEY', 'EAPI:INVALID SIGNATURE', 'EAPI:INVALID NONCE',
-    'EAPI:PERMISSION DENIED', 'INVALID API-KEY', 'INVALID API-SIGN',
-    'PERMISSION DENIED',
-]
-
-
-@user_bp.route('/validate-keys', methods=['POST'])
-@token_required
-def validate_keys():
-    try:
+        if data is None or 'notifications_enabled' not in data:
+            return bad_request("notifications_enabled is required")
+        enabled = bool(data['notifications_enabled'])
+        UserDbContext.update_notifications(request.user_id, enabled)
         user = UserDbContext.get_user_by_id(request.user_id)
-
-        if not user:
-            return not_found("User not found")
-
-        if not user.kraken_api_key_encrypted or not user.kraken_private_key_encrypted:
-            return success_response(data={'valid': False, 'error': 'No API keys configured'})
-
-        api_key = decrypt_api_key(user.kraken_api_key_encrypted)
-        private_key = decrypt_api_key(user.kraken_private_key_encrypted)
-
-        try:
-            result = get_account_balance(api_key, private_key)
-
-            if result.get('error') and len(result['error']) > 0:
-                error_msg = str(result['error'][0])
-
-                if any(kw in error_msg.upper() for kw in AUTH_ERROR_KEYWORDS):
-                    UserDbContext.mark_keys_invalid(request.user_id)
-                    return success_response(data={'valid': False, 'error': error_msg})
-                else:
-                    return success_response(data={'valid': None, 'error': 'Unable to validate: ' + error_msg})
-
-            UserDbContext.mark_keys_valid(request.user_id)
-            return success_response(data={'valid': True})
-
-        except http_requests.exceptions.Timeout:
-            return success_response(data={'valid': None, 'error': 'Connection timeout'})
-
-        except http_requests.exceptions.ConnectionError:
-            return success_response(data={'valid': None, 'error': 'Network connection failed'})
-
-        except Exception:
-            return success_response(data={'valid': None, 'error': 'Unable to verify connection'})
-
+        return success_response(data=user.to_dict(), message="Notification preference saved")
     except Exception as e:
         return handle_error(e)
 

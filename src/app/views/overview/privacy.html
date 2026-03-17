@@ -1,0 +1,115 @@
+<div class="page-container">
+  <div class="overview-header">
+    <h1 class="page-title"><i class="fa-solid fa-shield-halved me-2"></i>Privacy Policy</h1>
+    <p class="page-subtitle">How Cyrus handles your data — last updated March 2026</p>
+  </div>
+
+  <!-- Headline banner -->
+  <div class="privacy-banner">
+    <div class="privacy-banner-icon"><i class="fa-solid fa-lock"></i></div>
+    <div class="privacy-banner-body">
+      <strong>Your data never leaves your device.</strong>
+      Cyrus is a fully local application. No information you enter, generate, or store within this app is ever transmitted to, collected by, or stored on any server controlled by the developers of this software.
+    </div>
+  </div>
+
+  <div class="privacy-sections">
+
+    <!-- 1. What we store -->
+    <div class="privacy-card">
+      <div class="privacy-card-header">
+        <i class="fa-solid fa-database privacy-card-icon"></i>
+        <h2 class="privacy-card-title">Data Stored Locally</h2>
+        <span class="privacy-tag privacy-tag-local"><i class="fa-solid fa-house-lock me-2"></i> Local Only</span>
+      </div>
+      <p class="privacy-card-body">The following information is written to a SQLite database that lives entirely on your machine. Nothing listed here is sent anywhere.</p>
+      <ul class="privacy-list">
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Account credentials</strong> — your username and a bcrypt-hashed copy of your password. Your plaintext password is never stored.</span></li>
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Exchange API keys</strong> — your connect API key and secret. These are encrypted at rest using AES-256 and decrypted only when Cyrus needs to contact your exchange.</span></li>
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Exchange connections</strong> — the name, label, and status of each exchange account you add.</span></li>
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Automation rules</strong> — trigger conditions, action parameters, and execution logs for any custom commands you create.</span></li>
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Session tokens</strong> — short-lived JWT tokens kept in memory for the duration of your session; they are not persisted to disk.</span></li>
+      </ul>
+      <p class="privacy-filepath"><i class="fa-solid fa-folder-open me-2"></i>Database location: <code>%APPDATA%\Cyrus\Cyrus.db</code></p>
+    </div>
+
+    <!-- 2. Where data lives -->
+    <div class="privacy-card">
+      <div class="privacy-card-header">
+        <i class="fa-solid fa-server privacy-card-icon"></i>
+        <h2 class="privacy-card-title">Local-Only Backend</h2>
+        <span class="privacy-tag privacy-tag-local"><i class="fa-solid fa-house-lock me-2"></i> Localhost</span>
+      </div>
+      <p class="privacy-card-body">
+        Cyrus runs a lightweight Flask server bound exclusively to <code>127.0.0.1</code> (your machine's loopback address). This server is started automatically when you open the app and terminates when you close it.
+        It is <strong>not accessible from the internet, your local network, or any other device</strong> — only the Electron window running on your machine can communicate with it.
+      </p>
+    </div>
+
+    <!-- 3. Network communication -->
+    <div class="privacy-card">
+      <div class="privacy-card-header">
+        <i class="fa-solid fa-wifi privacy-card-icon"></i>
+        <h2 class="privacy-card-title">Network Communications</h2>
+        <span class="privacy-tag privacy-tag-exchange"><i class="fa-solid fa-arrow-right-arrow-left me-2"></i> Exchange APIs Only</span>
+      </div>
+      <p class="privacy-card-body">The only outbound network requests Cyrus makes are direct calls to the official REST APIs of exchanges you have connected. These requests occur when you:</p>
+      <ul class="privacy-list">
+        <li><i class="fa-solid fa-arrow-right privacy-list-icon-sm"></i><span>Load or refresh your open orders</span></li>
+        <li><i class="fa-solid fa-arrow-right privacy-list-icon-sm"></i><span>Load or refresh your whitelisted withdrawal addresses</span></li>
+        <li><i class="fa-solid fa-arrow-right privacy-list-icon-sm"></i><span>Validate a new API key connection in Profile</span></li>
+        <li><i class="fa-solid fa-arrow-right privacy-list-icon-sm"></i><span>An automation rule fires and executes a trade action</span></li>
+      </ul>
+      <p class="privacy-card-body mt-1">All such requests are made using your own API keys, authenticated directly with the exchange. The Cyrus developers receive no copy of these requests or their responses.</p>
+    </div>
+
+    <!-- 4. API key security -->
+    <div class="privacy-card">
+      <div class="privacy-card-header">
+        <i class="fa-solid fa-key privacy-card-icon"></i>
+        <h2 class="privacy-card-title">API Key Security</h2>
+        <span class="privacy-tag privacy-tag-secure"><i class="fa-solid fa-shield-halved me-2"></i> Encrypted at Rest</span>
+      </div>
+      <p class="privacy-card-body">Exchange API keys are sensitive credentials. Cyrus handles them with the following protections:</p>
+      <ul class="privacy-list">
+        <li><i class="fa-solid fa-lock privacy-list-icon"></i><span>Keys are <strong>encrypted with AES-256</strong> before being written to the local database.</span></li>
+        <li><i class="fa-solid fa-lock privacy-list-icon"></i><span>Keys are decrypted in memory only at the moment a request to your exchange is made, then discarded.</span></li>
+        <li><i class="fa-solid fa-lock privacy-list-icon"></i><span>Keys are <strong>never logged, displayed in plaintext after submission, or transmitted</strong> to any party other than your chosen exchange.</span></li>
+        <li><i class="fa-solid fa-lock privacy-list-icon"></i><span>It is strongly recommended to create API keys with the <strong>minimum required permissions</strong> (read-only) and to restrict them to your IP address in your exchange's API settings.</span></li>
+      </ul>
+    </div>
+
+    <!-- 5. No analytics or telemetry -->
+    <div class="privacy-card">
+      <div class="privacy-card-header">
+        <i class="fa-solid fa-chart-bar privacy-card-icon"></i>
+        <h2 class="privacy-card-title">No Analytics or Telemetry</h2>
+        <span class="privacy-tag privacy-tag-none"><i class="fa-solid fa-ban me-2"></i> Zero Tracking</span>
+      </div>
+      <p class="privacy-card-body">Cyrus does not include any of the following:</p>
+      <ul class="privacy-list">
+        <li><i class="fa-solid fa-xmark privacy-list-icon-none"></i><span>Usage analytics or event tracking</span></li>
+        <li><i class="fa-solid fa-xmark privacy-list-icon-none"></i><span>Crash reporting or error telemetry sent to external services</span></li>
+        <li><i class="fa-solid fa-xmark privacy-list-icon-none"></i><span>Advertising identifiers or fingerprinting</span></li>
+        <li><i class="fa-solid fa-xmark privacy-list-icon-none"></i><span>Background syncing of any kind</span></li>
+        <li><i class="fa-solid fa-xmark privacy-list-icon-none"></i><span>Third-party SDKs that collect or transmit personal information</span></li>
+      </ul>
+    </div>
+
+    <!-- 6. Your control -->
+    <div class="privacy-card">
+      <div class="privacy-card-header">
+        <i class="fa-solid fa-user-shield privacy-card-icon"></i>
+        <h2 class="privacy-card-title">Your Control</h2>
+        <span class="privacy-tag privacy-tag-local"><i class="fa-solid fa-sliders me-2"></i> Full Control</span>
+      </div>
+      <p class="privacy-card-body">Because all data is local, you are always in complete control:</p>
+      <ul class="privacy-list">
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Delete a connection</strong> — removes that exchange's API keys from the database immediately via the Profile page.</span></li>
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Delete all data</strong> — uninstalling the application and deleting <code>%APPDATA%\Cyrus</code> removes everything permanently.</span></li>
+        <li><i class="fa-solid fa-circle-check privacy-list-icon"></i><span><strong>Offline use</strong> — Cyrus works entirely without an internet connection except when explicitly querying your exchanges.</span></li>
+      </ul>
+    </div>
+
+  </div>
+</div>

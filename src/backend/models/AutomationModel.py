@@ -20,7 +20,10 @@ class AutomationRule:
                  is_active: bool = True,
                  created_at: Optional[datetime] = None,
                  last_triggered_at: Optional[datetime] = None,
-                 trigger_count: int = 0):
+                 trigger_count: int = 0,
+                 trigger_exchange_id: Optional[int] = None,
+                 action_exchange_id: Optional[int] = None,
+                 convert_to_asset: Optional[str] = None):
         self.id = id
         self.user_id = user_id
         self.rule_name = rule_name
@@ -41,6 +44,9 @@ class AutomationRule:
         self.created_at = created_at
         self.last_triggered_at = last_triggered_at
         self.trigger_count = trigger_count
+        self.trigger_exchange_id = trigger_exchange_id
+        self.action_exchange_id = action_exchange_id
+        self.convert_to_asset = convert_to_asset
 
     @staticmethod
     def from_row(row: dict) -> 'AutomationRule':
@@ -67,6 +73,9 @@ class AutomationRule:
             created_at=row.get('created_at'),
             last_triggered_at=row.get('last_triggered_at'),
             trigger_count=row.get('trigger_count', 0),
+            trigger_exchange_id=row.get('trigger_exchange_id'),
+            action_exchange_id=row.get('action_exchange_id'),
+            convert_to_asset=row.get('convert_to_asset'),
         )
 
     def to_dict(self) -> dict:
@@ -99,6 +108,9 @@ class AutomationRule:
             'created_at': format_datetime(self.created_at),
             'last_triggered_at': format_datetime(self.last_triggered_at),
             'trigger_count': self.trigger_count,
+            'trigger_exchange_id': self.trigger_exchange_id,
+            'action_exchange_id': self.action_exchange_id,
+            'convert_to_asset': self.convert_to_asset,
         }
 
 
