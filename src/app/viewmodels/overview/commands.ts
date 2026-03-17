@@ -51,7 +51,12 @@ class CommandsController {
       return;
     }
 
-    for (const conn of connections) {
+    const sorted = [...connections].sort((a, b) => {
+      const la = a.label && a.label !== 'Default' ? a.label : a.exchange_name;
+      const lb = b.label && b.label !== 'Default' ? b.label : b.exchange_name;
+      return la.localeCompare(lb);
+    });
+    for (const conn of sorted) {
       const opt = document.createElement('option');
       opt.value = conn.id.toString();
       const label = conn.label && conn.label !== 'Default' ? conn.label : conn.exchange_name;
@@ -223,9 +228,10 @@ class CommandsController {
     placeholder.textContent = 'Select an order...';
     select.appendChild(placeholder);
 
-    const ordersWithoutRules = orders.filter((o: any) => !this.ruleOrderIds.has(o.id));
-    const ordersWithRules = orders.filter((o: any) => this.ruleOrderIds.has(o.id));
-    const sortedOrders = [...ordersWithoutRules, ...ordersWithRules]; //not sure if I want to hide orders with rules or just mark them, for now I will just mark them with a checkmark in the dropdown
+    const orderLabel = (o: any) => `${o.id.substring(0, 10)}... (${o.side} ${o.volume} ${o.pair} @ ${o.price})`;
+    const ordersWithoutRules = orders.filter((o: any) => !this.ruleOrderIds.has(o.id)).sort((a: any, b: any) => orderLabel(a).localeCompare(orderLabel(b)));
+    const ordersWithRules = orders.filter((o: any) => this.ruleOrderIds.has(o.id)).sort((a: any, b: any) => orderLabel(a).localeCompare(orderLabel(b)));
+    const sortedOrders = [...ordersWithoutRules, ...ordersWithRules];
 
     for (const o of sortedOrders) {
       const opt = document.createElement('option');
@@ -331,7 +337,8 @@ class CommandsController {
     placeholder.textContent = 'Select an address...';
     select.appendChild(placeholder);
 
-    for (const addr of addresses) {
+    const sortedAddrs = [...addresses].sort((a: any, b: any) => a.nickname_key.localeCompare(b.nickname_key));
+    for (const addr of sortedAddrs) {
       const opt = document.createElement('option');
       opt.value = addr.nickname_key;
       opt.textContent = `${addr.nickname_key} (${addr.asset} - ${addr.method})`;
@@ -398,7 +405,7 @@ class CommandsController {
     placeholder.textContent = 'Select target asset...';
     toSelect.appendChild(placeholder);
 
-    for (const asset of Object.keys(this.balances)) {
+    for (const asset of Object.keys(this.balances).sort((a, b) => a.localeCompare(b))) {
       if (asset === triggerAsset) continue;
       const opt = document.createElement('option');
       opt.value = asset;
@@ -515,7 +522,7 @@ class CommandsController {
       placeholder.textContent = 'Select an asset...';
       triggerAssetSelect.appendChild(placeholder);
 
-      for (const [asset, amount] of Object.entries(this.balances)) {
+      for (const [asset, amount] of Object.entries(this.balances).sort(([a], [b]) => a.localeCompare(b))) {
         const opt = document.createElement('option');
         opt.value = asset;
         opt.textContent = `${asset} (Balance: ${parseFloat(amount).toFixed(8)})`;
