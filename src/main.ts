@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import * as path from 'path';
 import { spawn, ChildProcess } from 'child_process';
 import * as fs from 'fs';
@@ -100,6 +100,14 @@ function createWindow() {
   const indexPath = path.join(__dirname, '../src/index.html');
 
   mainWindow.loadFile(indexPath);
+
+  // Open external links (e.g. Venmo) in the system browser, not in-app
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (!url.startsWith('file://')) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.maximize();

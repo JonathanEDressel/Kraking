@@ -38,13 +38,18 @@
   margin-bottom: 1.75rem;
 }
 
+@keyframes logo-glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.45)); }
+  50%       { filter: drop-shadow(0 0 52px rgba(6, 182, 212, 0.85)); }
+}
+
 .auth-logo img {
   width: 88px;
   height: 88px;
   max-width: 150px;
   border-radius: 35px;
   object-fit: contain;
-  filter: drop-shadow(0 0 18px rgba(6, 182, 212, 0.45));
+  animation: logo-glow-pulse 2.4s ease-in-out infinite;
 }
 
 .auth-title {
