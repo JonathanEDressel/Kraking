@@ -1,15 +1,22 @@
 # Cyrus
 
-A desktop application for managing and monitoring your Kraken cryptocurrency trading account. Built with Electron, TypeScript, Python Flask, and SQLite.
+A desktop application for automating and monitoring cryptocurrency trading across multiple exchanges. Built with Electron, TypeScript, Python Flask, and SQLite.
 
 ## Features
 
 - **User Authentication** - Secure login and account management with JWT tokens
-- **Open Orders Monitoring** - Real-time view of your active Kraken orders with auto-refresh every 15 seconds
-- **Profile Management** - Update your username, password, and Kraken API keys
-- **Dark Theme UI** - Modern, responsive interface optimized for trading
-- **Auto-refresh** - Orders automatically refresh without manual intervention
-- **Secure API Integration** - Your Kraken API keys are stored securely and used for authenticated requests
+- **Multi-Exchange Support** - Connect and manage multiple exchange accounts simultaneously
+- **Open Orders Monitoring** - Real-time view of open orders with auto-refresh every 15 seconds
+- **Custom Automation Rules** - Automate actions when orders fill or balance thresholds are hit
+  - Withdraw crypto to a saved address
+  - Convert one asset to another
+  - Trigger on order filled or balance threshold
+  - Configurable cooldown periods
+- **Desktop Notifications** - Get notified when an automation rule executes (toggleable per user)
+- **Profile Management** - Update username, password, exchange API keys, and notification preferences
+- **Help Tooltips** - Inline guidance on every field in the automation form
+- **Dark Theme UI** - Modern, responsive cyber-styled interface
+- **Secure API Integration** - Exchange API keys are encrypted at rest
 
 ## Tech Stack
 
@@ -23,7 +30,7 @@ A desktop application for managing and monitoring your Kraken cryptocurrency tra
 - Python 3.11+
 - Flask (REST API)
 - SQLite (Database)
-- Kraken API integration
+- CCXT (Multi-exchange API library)
 
 ## Prerequisites
 
@@ -84,8 +91,8 @@ cd Cyrus
    SECRET_KEY=change-this-to-a-random-secret-key-min-32-chars
    API_PORT=5000
    
-   # Database (optional - defaults to src/backend/kraking.db)
-   DATABASE_PATH=kraking.db
+   # Database (optional - defaults to src/backend/cyrus.db)
+   DATABASE_PATH=cyrus.db
    ```
 
    **Important:** Change `SECRET_KEY` to a random string (at least 32 characters)
@@ -158,21 +165,29 @@ The Electron desktop app will launch automatically.
    - On first launch, click **"Create Account"**
    - Enter a username (min 3 characters)
    - Enter a password (min 6 characters)
-   - Enter your **Kraken API Key** and **Kraken Private Key**
-     - Get these from [Kraken API Settings](https://www.kraken.com/u/security/api)
-     - Required permissions: Query Open Orders & Closed Orders, Query Funds
    - Click **"Create Account"**
 
 2. **Login**
    - Enter your username and password
    - Click **"Sign In"**
 
-3. **View Open Orders**
-   - Click **"Open Orders"** in the navigation menu
-   - Your active Kraken orders will load and auto-refresh every 15 seconds
+3. **Add an Exchange Connection**
+   - Go to **Profile** → **Exchange Connections**
+   - Select your exchange, enter your API key and secret, and click **Add Connection**
+   - Click **Test** to validate the connection
 
-4. **Update Profile**
-   - Click **"Profile"** to update your username, password, or API keys
+4. **View Open Orders**
+   - Click **"Open Orders"** in the navigation menu
+   - Select your exchange from the side panel
+   - Orders auto-refresh every 15 seconds
+
+5. **Create an Automation Rule**
+   - Click **"Custom Commands"** in the navigation menu
+   - Fill in the trigger (order filled or balance threshold) and the action (withdraw or convert)
+   - Click **"Create Rule"**
+
+6. **Update Profile**
+   - Click **"Profile"** to update your username, password, API keys, or notification preferences
 
 ---
 
@@ -189,7 +204,10 @@ Cyrus/
 │   │   ├── models/               # TypeScript interfaces
 │   │   ├── services/             # API data layer
 │   │   │   ├── dataaccess.ts    # HTTP client
-│   │   │   ├── krakendata.ts    # Kraken endpoints
+│   │   │   ├── userdata.ts      # User endpoints
+│   │   │   ├── exchangedata.ts  # Exchange endpoints
+│   │   │   ├── automationdata.ts# Automation endpoints
+│   │   │   ├── notificationservice.ts # Desktop notifications
 │   │   │   └── controllers/     # Business logic
 │   │   ├── viewmodels/           # Page controllers
 │   │   ├── views/                # HTML partials
@@ -197,10 +215,13 @@ Cyrus/
 │   ├── backend/
 │   │   ├── Server.py             # Flask app entry point
 │   │   ├── Routes.py             # Blueprint registration
-│   │   ├── controllers/          # API controllers
+│   │   ├── controllers/          # API controllers + DB contexts
 │   │   ├── helper/               # Utilities
-│   │   │   ├── KrakenClient.py  # Kraken API client
+│   │   │   ├── ExchangeClient.py # CCXT wrapper
+│   │   │   ├── ExchangeRegistry.py # Supported exchanges
 │   │   │   └── Security.py      # JWT & bcrypt
+│   │   ├── automation/           # Background worker
+│   │   │   └── worker.py        # Rule evaluation loop
 │   │   └── models/               # Python data models
 │   └── assets/                   # Images, icons
 ├── dist/                         # Compiled TypeScript
@@ -239,6 +260,8 @@ The build dependencies should already be installed if you followed the initial s
 - **PyInstaller** - Installed in `src/backend/venv` during backend setup
 - **electron-builder** - Install now if not already installed:
 
+**Important:** PyInstaller must be installed inside the **Cyrus venv** (not a system or other project venv) so it can find all dependencies like ccxt.
+
 ```bash
 npm install --save-dev electron-builder
 ```
@@ -251,7 +274,7 @@ npm install --save-dev electron-builder
 # 1. Compile TypeScript
 npm run build
 
-# 2. Activate venv and build Python backend
+# 2. Activate venv and build Python backend (must be the Cyrus project venv)
 cd src/backend
 # Windows:
 venv\Scripts\activate
@@ -263,18 +286,16 @@ pyinstaller server.spec
 
 # Deactivate and return to root
 deactivate
-cd ../..
+cd ../..  
 
 # 3. Create installer
 npm run dist
 ```
 
-### Build Output
-
-After building, you'll find the installer at:
+> **Note:** Always run `pyinstaller` using the venv's own executable (`venv\Scripts\pyinstaller.exe`) to ensure it resolves packages from the correct environment.
 
 ```
-release/Cyrus Setup 1.0.0.exe
+release/Cyrus Setup 1.1.1.exe
 ```
 
 ### What the Installer Includes
@@ -289,7 +310,7 @@ The installer is a completely self-contained package that includes:
 
 When a user installs and runs your application:
 
-1. **Installation:** User runs `Cyrus Setup 1.0.0.exe` and chooses install location (default: `C:\Program Files\Cyrus`)
+1. **Installation:** User runs `Cyrus Setup 1.1.1.exe` and chooses install location (default: `C:\Program Files\Cyrus`)
 2. **Launch:** User opens Cyrus from Start Menu or Desktop shortcut
 3. **Auto-Start Backend:** Electron automatically starts the Python backend in the background
 4. **Database:** SQLite database is created in user's AppData folder (`%APPDATA%\Cyrus\Cyrus.db`)
@@ -298,7 +319,7 @@ When a user installs and runs your application:
 
 ### Distribution
 
-The `Cyrus Setup 1.0.0.exe` file can be distributed to users who can then:
+The `Cyrus Setup 1.1.1.exe` file can be distributed to users who can then:
 - Double-click to install
 - No need to install Python, Node.js, or MySQL
 - No manual database setup required
@@ -347,12 +368,12 @@ Without code signing, users may see a "Windows protected your PC" warning on fir
 
 **Database file locked or permission errors**
 - Ensure only one instance of the backend is running
-- Check file permissions on the `kraking.db` file
+- Check file permissions on the `cyrus.db` file
 - On Windows, ensure no antivirus is blocking the database file
 
 **Want to reset the database?**
 - Stop the backend server
-- Delete the `kraking.db` file in `src/backend/`
+- Delete the `cyrus.db` file in `src/backend/`
 - Restart the server - a fresh database will be created automatically
 
 ---
@@ -367,26 +388,45 @@ Without code signing, users may see a "Windows protected your PC" warning on fir
 - `GET /api/user/profile` - Get user profile
 - `PUT /api/user/update-username` - Update username
 - `PUT /api/user/update-password` - Update password
-- `PUT /api/user/update-keys` - Update Kraken API keys
+- `PUT /api/user/update-notifications` - Toggle desktop notifications
 - `DELETE /api/user/delete` - Delete account
 
-### Kraken Integration
-- `GET /api/kraken/open-orders` - Fetch open orders from Kraken
+### Exchange Connections
+- `GET /api/exchanges/supported` - List supported exchanges
+- `GET /api/exchanges/connections` - Get user's connections
+- `POST /api/exchanges/connections` - Add a new connection
+- `PUT /api/exchanges/connections/<id>` - Update a connection
+- `DELETE /api/exchanges/connections/<id>` - Remove a connection
+- `POST /api/exchanges/connections/<id>/validate` - Validate API keys
+
+### Exchange Data
+- `GET /api/exchange/<id>/open-orders` - Fetch open orders
+- `GET /api/exchange/<id>/withdrawal-addresses` - Get saved withdrawal addresses
+- `GET /api/exchange/<id>/balance` - Get account balances
+
+### Automation
+- `GET /api/automation/rules` - List automation rules
+- `POST /api/automation/rules` - Create a rule
+- `GET /api/automation/rules/<id>` - Get a specific rule
+- `PUT /api/automation/rules/<id>/toggle` - Enable/disable a rule
+- `DELETE /api/automation/rules/<id>` - Delete a rule
+- `GET /api/automation/withdrawal-minimums` - Get minimum withdrawal amounts
+- `GET /api/automation/logs` - Get automation execution logs
+- `GET /api/automation/rules/<id>/logs` - Get logs for a specific rule
 
 ---
 
 ## Security Notes
 
-- **Kraken API keys are encrypted** using Fernet symmetric encryption (AES-128) before storage
+- **Exchange API keys are encrypted** using Fernet symmetric encryption (AES-128) before storage
   - The encryption key is derived from your Flask `SECRET_KEY` using SHA-256
-  - Keys are automatically encrypted during registration and profile updates
-  - Keys are decrypted only when making API calls to Kraken
-  - **Important:** If you have existing users with unencrypted keys, they must re-enter their keys through the profile page
+  - Keys are automatically encrypted on save and decrypted only when making API calls
 - JWT tokens expire after 30 days
 - Passwords are hashed with bcrypt (salt rounds: 12)
 - All API requests use prepared SQL statements to prevent injection
-- CORS is enabled only for `http://127.0.0.1:5000`
+- CORS is restricted to `http://127.0.0.1:5000`
 - **Security Best Practice:** Keep your `.env` file private and never commit it to version control
+- **Database:** Stored in `%APPDATA%\Cyrus\` — never deleted by uninstall or updates
 
 ---
 
