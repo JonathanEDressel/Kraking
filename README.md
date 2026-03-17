@@ -43,8 +43,17 @@ Before you begin, ensure you have the following installed:
 **Note:** SQLite is included with Python's standard library, so no separate database installation is required.
 
 ---
+## Desktop Application Installation Guide 
 
-## Installation Guide
+### 1. To the right of this page, click Releases
+
+### 2. Click Cyrus.Setup.X.X.X.exe
+
+### 3. Wait for the download to finish
+
+### 4. Complete the installation guide
+
+## Code Installation Guide 
 
 ### 1. Clone the Repository
 
