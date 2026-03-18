@@ -455,14 +455,31 @@ This project is licensed under the ISC License.
 
 ---
 
-## Support
+## Sponsors & Support
 
-If you find this project helpful, consider donating:
+Cyrus is free and open-source. If it saves you time or helps you trade smarter, please consider supporting the project — every contribution goes directly toward continued development.
 
-- **Bitcoin:** `32BJw5mpyQ6fuLeiR5yrAAR2H8gerB9GAD`
-- **Ethereum:** `0xc0066CCD708376cF3fA34CF5a3a8eB88AF58c97A`
-- **Solana:** 7vfBGpjZTEZEsKNi1ZdYYBPGq1uFzWvLuV6xRP13tSo9
-- **XRP/Tag:** rLHzPsX6oXkzU2qL12kHCH8G8cnZv1rBJh / 204756592
+### 💜 Affiliate Partners
+
+Using these links costs you nothing extra, but helps keep Cyrus alive:
+
+| Service | Description | Link |
+|---------|-------------|------|
+| **NordVPN** | Encrypt your internet traffic while connecting to exchanges — essential for any active trader | [Get NordVPN](https://go.nordvpn.net/aff_c?offer_id=15&aff_id=143568&url_id=902) |
+| **NordPass** | Zero-knowledge password manager — store your API keys and passwords securely | [Get NordPass](https://go.nordpass.io/aff_c?offer_id=488&aff_id=143568&url_id=9356) |
+
+### 💸 Direct Donations
+
+**Venmo:** [@JonathanDressel](https://account.venmo.com/u/JonathanDressel)
+
+**Crypto:**
+
+| Network | Address |
+|---------|---------|
+| Bitcoin (BTC) | `32BJw5mpyQ6fuLeiR5yrAAR2H8gerB9GAD` |
+| Ethereum (ETH) | `0xc0066CCD708376cF3fA34CF5a3a8eB88AF58c97A` |
+| Solana (SOL) | `7vfBGpjZTEZEsKNi1ZdYYBPGq1uFzWvLuV6xRP13tSo9` |
+| XRP | `rLHzPsX6oXkzU2qL12kHCH8G8cnZv1rBJh` (Tag: `204756592`) |
 
 ---
 
