@@ -206,3 +206,273 @@
   color: #22c55e;
   text-transform: capitalize;
 }
+
+/* ── Live Data Charts ──────────────────────────────────────────── */
+
+.live-data-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  max-height: calc(2 * (250px + 90px + 1rem));  /* 2 rows of charts */
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.live-data-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-dim);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+}
+
+.live-data-empty i {
+  font-size: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.live-data-empty p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.chart-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.chart-card:hover {
+  border-color: var(--accent-cyan);
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem 0;
+}
+
+.chart-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.chart-symbol {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.chart-price {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+}
+
+.chart-change {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.price-positive {
+  color: #22c55e;
+}
+
+.price-negative {
+  color: #ef4444;
+}
+
+.chart-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.chart-remove-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.time-range-selector {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+}
+
+.time-range-btn {
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.time-range-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.time-range-btn.active {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: #fff;
+}
+
+.chart-container {
+  width: 100%;
+  height: 250px;
+}
+
+/* ── Add Crypto Button ─────────────────────────────────────────── */
+
+.add-crypto-btn {
+  background: var(--accent-cyan);
+  color: #fff;
+  border: none;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: background 0.2s;
+}
+
+.add-crypto-btn:hover {
+  background: var(--accent-cyan-hover, #0891b2);
+}
+
+/* ── Add Crypto Modal ──────────────────────────────────────────── */
+
+.add-crypto-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.add-crypto-modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  width: 400px;
+  max-height: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.add-crypto-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.add-crypto-modal-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.add-crypto-modal-close {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+
+.add-crypto-modal-close:hover {
+  color: var(--text-primary);
+}
+
+.add-crypto-search {
+  margin: 0.75rem 1.25rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.add-crypto-search:focus {
+  border-color: var(--accent-cyan);
+}
+
+.add-crypto-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0.5rem 0.75rem;
+  max-height: 320px;
+}
+
+.add-crypto-loading {
+  text-align: center;
+  color: var(--text-dim);
+  padding: 1.5rem;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.add-crypto-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.add-crypto-item:hover {
+  background: var(--hover-overlay);
+}
+
+.add-crypto-item-base {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.add-crypto-item-symbol {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

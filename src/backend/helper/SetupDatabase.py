@@ -97,10 +97,22 @@ def setup_database():
             )
         ''')
 
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS watched_cryptos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                symbol TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, symbol),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ''')
+
         conn.execute('CREATE INDEX IF NOT EXISTS idx_username ON users(username)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_user_active ON automation_rules(user_id, is_active)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_user_log ON automation_log(user_id, created_at)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_exchange_conn_user ON exchange_connections(user_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_watched_cryptos_user ON watched_cryptos(user_id)')
 
         for migration in [
             'ALTER TABLE automation_rules ADD COLUMN trigger_exchange_id INTEGER REFERENCES exchange_connections(id) ON DELETE SET NULL',

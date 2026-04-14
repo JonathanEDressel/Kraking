@@ -68,26 +68,28 @@
   <div class="overview-section">
     <div class="section-header">
       <h2 class="section-title">Live Data</h2>
-      <!-- <button class="btn-link-sm" id="view-all-orders">View All <i class="fa-solid fa-arrow-right"></i></button> -->
+      <button class="add-crypto-btn" id="add-crypto-btn"><i class="fa-solid fa-plus"></i> Add Crypto</button>
     </div>
-    <div class="data-table-wrapper">
-      <table class="data-table" id="orders-table">
-        <thead id="orders-thead">
-          <tr>
-            <th>Crypto</th>
-            <th>Current Price</th>
-            <th>Percent Change</th>
-            <th>Today's High</th>
-            <th>Today's Low</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="data-tbody" class="data-list">
-          <tr class="empty-row">
-            <td colspan="6">Coming soon...</td>
-          </tr>
-        </tbody>
-      </table>
+
+    <!-- Add Crypto Modal -->
+    <div class="add-crypto-modal d-none" id="add-crypto-modal">
+      <div class="add-crypto-modal-content">
+        <div class="add-crypto-modal-header">
+          <h3>Add Crypto</h3>
+          <button class="add-crypto-modal-close" id="add-crypto-modal-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <input type="text" class="add-crypto-search" id="add-crypto-search" placeholder="Search pairs (e.g. BTC, ETH)..." />
+        <div class="add-crypto-list" id="add-crypto-list">
+          <p class="add-crypto-loading">Loading pairs...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="live-data-charts" class="live-data-grid">
+      <div class="live-data-empty" id="live-data-empty">
+        <i class="fa-solid fa-chart-line"></i>
+        <p>No cryptos tracked yet. Click <strong>Add Crypto</strong> to get started.</p>
+      </div>
     </div>
   </div>
 
