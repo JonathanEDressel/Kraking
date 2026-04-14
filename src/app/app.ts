@@ -1,4 +1,4 @@
-(function () {
+(async function () {
   router.register('login', {
     view: 'app/views/login.html',
     viewModel: '../dist/app/viewmodels/login.js',
@@ -97,44 +97,44 @@
     if (!tokenValid) {
       router.navigate('login');
     } else {
-    ApiKeyWarning.init();
-    UserController.refreshKeyStatus().then(async () => {
-      if (ApiKeyState.status === 'valid') {
-        try {
-          await ExchangeStore.loadConnections();
-          populateExchangeSelector();
-          const saved = localStorage.getItem('cyrus_exchange_mode');
-          if (saved && saved !== 'all') {
-            const id = parseInt(saved, 10);
-            const valid = ExchangeStore.connections.find(c => c.id === id);
-            if (valid) {
-              ExchangeStore.start(id);
-              setExchangeSelectorValue(saved);
-            } else {
+      ApiKeyWarning.init();
+      UserController.refreshKeyStatus().then(async () => {
+        if (ApiKeyState.status === 'valid') {
+          try {
+            await ExchangeStore.loadConnections();
+            populateExchangeSelector();
+            const saved = localStorage.getItem('cyrus_exchange_mode');
+            if (saved && saved !== 'all') {
+              const id = parseInt(saved, 10);
+              const valid = ExchangeStore.connections.find(c => c.id === id);
+              if (valid) {
+                ExchangeStore.start(id);
+                setExchangeSelectorValue(saved);
+              } else {
+                ExchangeStore.start('all');
+              }
+            } else if (ExchangeStore.connections.length > 0) {
               ExchangeStore.start('all');
             }
-          } else if (ExchangeStore.connections.length > 0) {
-            ExchangeStore.start('all');
-          }
-        } catch {}
-        NotificationService.start();
-      }
-    });
+          } catch {}
+          NotificationService.start();
+        }
+      });
 
-    ExchangeStore.onConnectionsChange(() => populateExchangeSelector());
+      ExchangeStore.onConnectionsChange(() => populateExchangeSelector());
 
-    const selector = document.getElementById('exchange-selector') as HTMLSelectElement;
-    selector?.addEventListener('change', () => {
-      const val = selector.value;
-      localStorage.setItem('cyrus_exchange_mode', val);
-      if (val === 'all') {
-        ExchangeStore.setMode('all');
-      } else {
-        ExchangeStore.setMode(parseInt(val, 10));
-      }
-    });
+      const selector = document.getElementById('exchange-selector') as HTMLSelectElement;
+      selector?.addEventListener('change', () => {
+        const val = selector.value;
+        localStorage.setItem('cyrus_exchange_mode', val);
+        if (val === 'all') {
+          ExchangeStore.setMode('all');
+        } else {
+          ExchangeStore.setMode(parseInt(val, 10));
+        }
+      });
 
-    router.navigate('home');
+      router.navigate('home');
     }
   } else {
     router.navigate('login');
