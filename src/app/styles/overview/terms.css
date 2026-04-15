@@ -1,3 +1,5 @@
+@import url('./privacy.css');
+
 .terms-link {
   color: var(--accent);
   text-decoration: underline;
