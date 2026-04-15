@@ -15,12 +15,14 @@ class HomeController {
   private allPairs: any[] = [];
   private tickerTimer: ReturnType<typeof setInterval> | null = null;
   private chartTimer: ReturnType<typeof setInterval> | null = null;
+  private draggedSymbol: string | null = null;
 
   constructor() {
     this.init();
   }
 
   private init(): void {
+    this.initCollapsibleSections();
     this.attachEventListeners();
     this.loadDashboardData();
 
@@ -40,6 +42,26 @@ class HomeController {
     });
     const content = document.getElementById('app-content');
     if (content) observer.observe(content, { childList: true });
+  }
+
+  private initCollapsibleSections(): void {
+    document.querySelectorAll('.section-header[data-collapse]').forEach((header) => {
+      const key = header.getAttribute('data-collapse')!;
+      const section = header.closest('.overview-section') as HTMLElement | null;
+      if (!section) return;
+
+      // Restore collapsed state from sessionStorage
+      if (sessionStorage.getItem(`section-collapsed-${key}`) === '1') {
+        section.classList.add('collapsed');
+      }
+
+      header.addEventListener('click', (e) => {
+        // Don't collapse when clicking buttons inside the header
+        if ((e.target as HTMLElement).closest('button')) return;
+        const isCollapsed = section.classList.toggle('collapsed');
+        sessionStorage.setItem(`section-collapsed-${key}`, isCollapsed ? '1' : '0');
+      });
+    });
   }
 
   private attachEventListeners(): void {
@@ -119,6 +141,8 @@ class HomeController {
     const card = document.createElement('div');
     card.className = 'chart-card';
     card.id = `chart-card-${cardId}`;
+    card.draggable = true;
+    card.setAttribute('data-symbol', symbol);
     card.innerHTML = `
       <div class="chart-header">
         <div class="chart-header-left">
@@ -131,18 +155,51 @@ class HomeController {
         </button>
       </div>
       <div class="time-range-selector" id="time-range-${cardId}">
+        <button class="time-range-btn" data-range="1H">1H</button>
+        <button class="time-range-btn" data-range="12H">12H</button>
         <button class="time-range-btn active" data-range="1D">1D</button>
         <button class="time-range-btn" data-range="1W">1W</button>
         <button class="time-range-btn" data-range="1M">1M</button>
         <button class="time-range-btn" data-range="3M">3M</button>
         <button class="time-range-btn" data-range="YTD">YTD</button>
         <button class="time-range-btn" data-range="1Y">1Y</button>
-        <button class="time-range-btn" data-range="5Y">5Y</button>
-        <button class="time-range-btn" data-range="ALL">ALL</button>
       </div>
       <div class="chart-container" id="chart-el-${cardId}"></div>
     `;
     container.appendChild(card);
+
+    // Drag-and-drop handlers
+    card.addEventListener('dragstart', (e) => {
+      this.draggedSymbol = symbol;
+      card.classList.add('dragging');
+      e.dataTransfer!.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', () => {
+      this.draggedSymbol = null;
+      card.classList.remove('dragging');
+      container.querySelectorAll('.chart-card.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer!.dropEffect = 'move';
+      if (this.draggedSymbol && this.draggedSymbol !== symbol) {
+        card.classList.add('drag-over');
+      }
+    });
+    card.addEventListener('dragleave', () => {
+      card.classList.remove('drag-over');
+    });
+    card.addEventListener('drop', (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      if (!this.draggedSymbol || this.draggedSymbol === symbol) return;
+      const draggedId = this.symbolToId(this.draggedSymbol);
+      const draggedCard = document.getElementById(`chart-card-${draggedId}`);
+      if (!draggedCard) return;
+      // Insert dragged card before this card
+      container.insertBefore(draggedCard, card);
+      this.persistOrder();
+    });
 
     // Remove button
     card.querySelector('.chart-remove-btn')?.addEventListener('click', () => {
@@ -236,6 +293,8 @@ class HomeController {
       inst.series.applyOptions({ priceFormat: { type: 'price', precision, minMove } });
 
       inst.series.setData(lineData);
+      const hideTime = ['3M', 'YTD', '1Y', '5Y', 'ALL'].includes(range);
+      inst.chart.applyOptions({ timeScale: { timeVisible: !hideTime } });
       inst.chart.timeScale().fitContent();
     } catch {
       // chart stays empty on error
@@ -289,6 +348,24 @@ class HomeController {
 
     if (this.charts.size === 0) {
       this.showEmptyState();
+    }
+  }
+
+  private async persistOrder(): Promise<void> {
+    const container = document.getElementById('live-data-charts');
+    if (!container) return;
+    const symbols: string[] = [];
+    container.querySelectorAll('.chart-card[data-symbol]').forEach((el) => {
+      const sym = el.getAttribute('data-symbol');
+      if (sym) symbols.push(sym);
+    });
+    try {
+      const token = AuthController.getToken();
+      if (token) {
+        await WatchlistData.updateOrder(token, symbols);
+      }
+    } catch {
+      // best-effort persist
     }
   }
 
@@ -452,7 +529,7 @@ class HomeController {
         <td>${this.escapeHtml(time)}</td>
         <td>${this.escapeHtml(l.trigger_event)}</td>
         <td>${this.escapeHtml(l.action_executed)}</td>
-        <td class="result-cell">${this.escapeHtml(l.action_result)}</td>
+        <td class="result-cell">${this.formatActionResult(l.action_result, l.status)}</td>
         <td><span class="log-status ${statusClass}">${this.escapeHtml(l.status)}</span></td>
       </tr>`;
     }).join('');
@@ -581,6 +658,61 @@ class HomeController {
     if (tbody) {
       tbody.innerHTML = `<tr class="empty-row"><td colspan="${colspan}">${message}</td></tr>`;
     }
+  }
+
+  private formatActionResult(raw: string, status: string): string {
+    if (!raw) return '--';
+
+    // Error/skipped messages are already readable text
+    if (status !== 'success' || !raw.startsWith('{')) {
+      return this.escapeHtml(raw);
+    }
+
+    const parts: string[] = [];
+    const isOrder = /'symbol'\s*:/.test(raw);
+
+    if (isOrder) {
+      const symbol = this.extractField(raw, 'symbol');
+      const side = this.extractField(raw, 'side');
+      const filled = this.extractField(raw, 'filled');
+      const average = this.extractField(raw, 'average');
+      const cost = this.extractField(raw, 'cost');
+      const st = this.extractField(raw, 'status');
+
+      if (side && symbol) parts.push(`${side.toUpperCase()} ${symbol}`);
+      if (filled) parts.push(`Filled: ${filled}`);
+      if (average && average !== 'None') parts.push(`Avg Price: ${average}`);
+      if (cost) parts.push(`Cost: ${cost}`);
+      if (st) parts.push(`Status: ${st}`);
+    } else {
+      const id = this.extractField(raw, 'id');
+      const amount = this.extractField(raw, 'amount');
+      const currency = this.extractField(raw, 'currency');
+      const st = this.extractField(raw, 'status');
+
+      if (amount && currency) parts.push(`${amount} ${currency}`);
+      if (id) parts.push(`Ref: ${id}`);
+      if (st) parts.push(`Status: ${st}`);
+    }
+
+    // Extract fee from top-level 'fee' dict
+    const feeMatch = raw.match(/'fee'\s*:\s*\{([^}]*)\}/);
+    if (feeMatch) {
+      const feeStr = feeMatch[1];
+      const feeCost = feeStr.match(/'cost'\s*:\s*([\d.]+)/);
+      const feeCurrency = feeStr.match(/'currency'\s*:\s*'([^']*)'/);
+      if (feeCost && feeCurrency) parts.push(`Fee: ${feeCost[1]} ${feeCurrency[1]}`);
+    }
+
+    return this.escapeHtml(parts.length > 0 ? parts.join(' | ') : raw);
+  }
+
+  private extractField(raw: string, field: string): string | null {
+    const strMatch = raw.match(new RegExp(`'${field}'\\s*:\\s*'([^']*)'`));
+    if (strMatch) return strMatch[1];
+    const numMatch = raw.match(new RegExp(`'${field}'\\s*:\\s*([\\d.]+)`));
+    if (numMatch) return numMatch[1];
+    return null;
   }
 
   private escapeHtml(str: string): string {

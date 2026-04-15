@@ -35,6 +35,20 @@ def add_to_watchlist():
         return handle_error(e)
 
 
+@watchlist_bp.route('/order', methods=['PUT'])
+@token_required
+def update_watchlist_order():
+    try:
+        body = request.get_json(silent=True) or {}
+        symbols = body.get('symbols')
+        if not isinstance(symbols, list) or len(symbols) == 0:
+            return bad_request("symbols array is required")
+        WatchlistDbContext.update_order(request.user_id, symbols)
+        return success_response(message="Order updated")
+    except Exception as e:
+        return handle_error(e)
+
+
 @watchlist_bp.route('/<path:symbol>', methods=['DELETE'])
 @token_required
 def remove_from_watchlist(symbol: str):

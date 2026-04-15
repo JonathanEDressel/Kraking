@@ -87,6 +87,32 @@
   justify-content: space-between;
   margin-bottom: 1rem;
   color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collapse-chevron {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: transform 0.25s ease;
+}
+
+.overview-section.collapsed .collapse-chevron {
+  transform: rotate(-90deg);
+}
+
+.overview-section.collapsed .section-header {
+  margin-bottom: 0;
+}
+
+.overview-section.collapsed > *:not(.section-header) {
+  display: none;
 }
 
 .section-title {
@@ -250,6 +276,21 @@
 
 .chart-card:hover {
   border-color: var(--accent-cyan);
+}
+
+.chart-card[draggable="true"] {
+  cursor: grab;
+}
+
+.chart-card.dragging {
+  opacity: 0.4;
+  border: 2px dashed var(--accent-cyan);
+  cursor: grabbing;
+}
+
+.chart-card.drag-over {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.25);
 }
 
 .chart-header {

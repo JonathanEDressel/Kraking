@@ -54,6 +54,8 @@ def _get_pairs_cached() -> list[dict]:
 
 # Timeframe presets: maps UI range key → (ccxt timeframe, seconds lookback)
 TIMEFRAME_MAP = {
+    '1H':  ('1m',   3_600),
+    '12H': ('5m',   43_200),
     '1D':  ('15m',  86_400),
     '1W':  ('1h',   7 * 86_400),
     '1M':  ('4h',   30 * 86_400),

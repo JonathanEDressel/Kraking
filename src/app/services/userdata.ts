@@ -59,4 +59,12 @@ class UserData {
       token
     );
   }
+
+  static async updateActive(isActive: boolean, token: string): Promise<ApiResponse<UserModel>> {
+    return DataAccess.put(
+      `${AppConfig.API_BASE}/user/update-active`,
+      { is_active: isActive },
+      token
+    );
+  }
 }

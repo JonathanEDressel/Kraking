@@ -20,4 +20,12 @@ class WatchlistData {
       token
     );
   }
+
+  static async updateOrder(token: string, symbols: string[]): Promise<ApiResponse<any>> {
+    return DataAccess.put<any>(
+      `${AppConfig.API_BASE}/watchlist/order`,
+      { symbols },
+      token
+    );
+  }
 }

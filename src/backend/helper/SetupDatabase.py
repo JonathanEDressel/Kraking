@@ -155,6 +155,11 @@ def setup_database():
         except Exception:
             pass  
 
+        try:
+            conn.execute('ALTER TABLE watched_cryptos ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0')
+        except Exception:
+            pass
+
         conn.commit()
         print("[DATABASE] Tables created/verified successfully")
         

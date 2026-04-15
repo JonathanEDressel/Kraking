@@ -9,6 +9,23 @@ from helper.Helper import success_response
 user_bp = Blueprint('user', __name__)
 
 
+@user_bp.route('/update-active', methods=['PUT'])
+@token_required
+def update_active():
+    try:
+        data = request.get_json()
+        if not data or 'is_active' not in data:
+            return bad_request("is_active field is required")
+
+        is_active = bool(data['is_active'])
+        UserDbContext.update_active(request.user_id, is_active)
+
+        user = UserDbContext.get_user_by_id(request.user_id)
+        return success_response(data=user.to_dict(), message="Account status updated")
+    except Exception as e:
+        return handle_error(e)
+
+
 @user_bp.route('/profile', methods=['GET'])
 @token_required
 def get_profile():

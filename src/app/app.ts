@@ -106,6 +106,12 @@ function applyTheme(theme: string): void {
       try {
         const user = await UserController.getProfile();
         applyTheme(user.theme || 'dark');
+
+        // Show inactive warning if account is deactivated
+        const inactiveWarning = document.getElementById('inactive-warning');
+        if (inactiveWarning) {
+          inactiveWarning.classList.toggle('d-none', user.is_active !== false);
+        }
       } catch {
         applyTheme('dark');
       }

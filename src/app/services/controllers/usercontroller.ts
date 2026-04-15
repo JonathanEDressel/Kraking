@@ -83,6 +83,13 @@ class UserController {
     await UserData.updateTheme(theme, token);
   }
 
+  static async updateActive(isActive: boolean): Promise<UserModel> {
+    const token = AuthController.getToken();
+    if (!token) throw new Error('Not authenticated');
+    const response = await UserData.updateActive(isActive, token);
+    return response.data;
+  }
+
   /**
    * Load connection status from user profile.
    * Sets ApiKeyState based on exchange_connections.

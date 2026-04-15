@@ -34,6 +34,11 @@ class ProfileController {
       this.saveTheme(isDark ? 'dark' : 'light');
     });
 
+    document.getElementById('active-toggle')?.addEventListener('change', (e) => {
+      const isActive = (e.target as HTMLInputElement).checked;
+      this.saveActive(isActive);
+    });
+
     document.getElementById('new-exchange-name')?.addEventListener('change', () => {
       const select = document.getElementById('new-exchange-name') as HTMLSelectElement;
       const exchange = this.supportedExchanges.find(e => e.id === select.value);
@@ -62,6 +67,8 @@ class ProfileController {
       if (notifModalToggle) notifModalToggle.checked = user.donation_modal_enabled !== false;
       const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement;
       if (themeToggle) themeToggle.checked = user.theme !== 'light';
+      const activeToggle = document.getElementById('active-toggle') as HTMLInputElement;
+      if (activeToggle) activeToggle.checked = user.is_active !== false;
       NotificationService.setEnabled(user.notifications_enabled !== false);
     } catch (error: any) {
       this.showError('username', error.message || 'Failed to load profile');
@@ -276,6 +283,19 @@ class ProfileController {
       applyTheme(revert);
       const toggle = document.getElementById('theme-toggle') as HTMLInputElement;
       if (toggle) toggle.checked = revert === 'dark';
+    }
+  }
+
+  private async saveActive(isActive: boolean): Promise<void> {
+    try {
+      await UserController.updateActive(isActive);
+      const warning = document.getElementById('inactive-warning');
+      if (warning) warning.classList.toggle('d-none', isActive);
+      this.showSuccess('notifications', isActive ? 'Account activated' : 'Account deactivated');
+    } catch (error: any) {
+      this.showError('notifications', error.message || 'Failed to update account status');
+      const toggle = document.getElementById('active-toggle') as HTMLInputElement;
+      if (toggle) toggle.checked = !isActive;
     }
   }
 

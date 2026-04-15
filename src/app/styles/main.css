@@ -484,6 +484,65 @@ body.theme-light {
   color: var(--accent-cyan-light);
 }
 
+/* Inactive Account Warning Banner */
+.inactive-warning {
+  position: fixed;
+  top: 48px;
+  left: 220px;
+  right: 0;
+  z-index: 100;
+  background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+  border-bottom: 1px solid #f87171;
+}
+
+.inactive-warning-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.65rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inactive-warning-content {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #fecaca;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.inactive-warning-content i {
+  color: #f87171;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.inactive-warning-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.inactive-warning:not(.d-none) ~ .api-key-warning {
+  top: 84px;
+}
+
+.inactive-warning:not(.d-none) ~ #app-content {
+  padding-top: 88px;
+}
+
+.inactive-warning:not(.d-none) ~ .api-key-warning:not(.d-none) ~ #app-content {
+  padding-top: 124px;
+}
+
+.app-sidebar.d-none ~ .inactive-warning {
+  display: none !important;
+}
+
 /* API Key Warning Banner */
 .api-key-warning {
   position: fixed;

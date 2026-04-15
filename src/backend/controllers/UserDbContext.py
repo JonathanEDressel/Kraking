@@ -63,3 +63,11 @@ class UserDbContext:
             (theme, user_id)
         )
         return True
+
+    @staticmethod
+    def update_active(user_id: int, is_active: bool) -> bool:
+        execute_non_query(
+            'UPDATE users SET is_active = ? WHERE id = ?',
+            (1 if is_active else 0, user_id)
+        )
+        return True
