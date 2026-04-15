@@ -137,6 +137,7 @@ class HomeController {
     if (!container) return;
 
     const cardId = this.symbolToId(symbol);
+    const savedRange = localStorage.getItem(`chart-range-${symbol}`) || '1D';
 
     const card = document.createElement('div');
     card.className = 'chart-card';
@@ -155,14 +156,9 @@ class HomeController {
         </button>
       </div>
       <div class="time-range-selector" id="time-range-${cardId}">
-        <button class="time-range-btn" data-range="1H">1H</button>
-        <button class="time-range-btn" data-range="12H">12H</button>
-        <button class="time-range-btn active" data-range="1D">1D</button>
-        <button class="time-range-btn" data-range="1W">1W</button>
-        <button class="time-range-btn" data-range="1M">1M</button>
-        <button class="time-range-btn" data-range="3M">3M</button>
-        <button class="time-range-btn" data-range="YTD">YTD</button>
-        <button class="time-range-btn" data-range="1Y">1Y</button>
+        ${['1H','12H','1D','1W','1M','3M','YTD','1Y'].map(r =>
+          `<button class="time-range-btn${r === savedRange ? ' active' : ''}" data-range="${r}">${r}</button>`
+        ).join('\n        ')}
       </div>
       <div class="chart-container" id="chart-el-${cardId}"></div>
     `;
@@ -210,9 +206,9 @@ class HomeController {
     card.querySelectorAll('.time-range-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const range = (e.currentTarget as HTMLElement).getAttribute('data-range') || '1D';
-        // Update active state
         card.querySelectorAll('.time-range-btn').forEach(b => b.classList.remove('active'));
         (e.currentTarget as HTMLElement).classList.add('active');
+        localStorage.setItem(`chart-range-${symbol}`, range);
         this.loadChartData(symbol, range);
       });
     });
@@ -255,7 +251,7 @@ class HomeController {
       priceFormat: { type: 'price', precision: 8, minMove: 0.00000001 },
     });
 
-    this.charts.set(symbol, { chart, series, symbol, activeRange: '1D' });
+    this.charts.set(symbol, { chart, series, symbol, activeRange: savedRange });
 
     // Responsive resize
     const resizeObserver = new ResizeObserver(() => {
@@ -265,8 +261,7 @@ class HomeController {
     });
     resizeObserver.observe(chartEl);
 
-    // Load default data
-    await this.loadChartData(symbol, '1D');
+    await this.loadChartData(symbol, savedRange);
     this.loadTicker(symbol);
   }
 
@@ -296,6 +291,17 @@ class HomeController {
       const hideTime = ['3M', 'YTD', '1Y', '5Y', 'ALL'].includes(range);
       inst.chart.applyOptions({ timeScale: { timeVisible: !hideTime } });
       inst.chart.timeScale().fitContent();
+
+      // Update percent change based on chart data range
+      const cardId = this.symbolToId(symbol);
+      const changeEl = document.getElementById(`chart-change-${cardId}`);
+      if (changeEl && candles.length >= 2) {
+        const first = candles[0].open;
+        const last = candles[candles.length - 1].close;
+        const pct = first !== 0 ? ((last - first) / first) * 100 : 0;
+        changeEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+        changeEl.className = `chart-change ${pct >= 0 ? 'price-positive' : 'price-negative'}`;
+      }
     } catch {
       // chart stays empty on error
     }
@@ -311,17 +317,11 @@ class HomeController {
       if (!t) return;
 
       const priceEl = document.getElementById(`chart-price-${cardId}`);
-      const changeEl = document.getElementById(`chart-change-${cardId}`);
 
       if (priceEl && t.last != null) {
         const price = Number(t.last);
         const fracDigits = price >= 1 ? 2 : price >= 0.01 ? 4 : 8;
         priceEl.textContent = `$${price.toLocaleString(undefined, { minimumFractionDigits: fracDigits, maximumFractionDigits: fracDigits })}`;
-      }
-      if (changeEl && t.percentage != null) {
-        const pct = Number(t.percentage);
-        changeEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
-        changeEl.className = `chart-change ${pct >= 0 ? 'price-positive' : 'price-negative'}`;
       }
     } catch {
       // leave as --
