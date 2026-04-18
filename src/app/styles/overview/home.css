@@ -115,6 +115,10 @@
   display: none;
 }
 
+.overview-section.collapsed .add-crypto-btn {
+  display: none;
+}
+
 .section-title {
   font-size: 1.15rem;
   font-weight: 600;
