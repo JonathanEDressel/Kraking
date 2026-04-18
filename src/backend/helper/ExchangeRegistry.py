@@ -23,6 +23,7 @@ SUPPORTED_EXCHANGES: dict[str, dict] = {
         'has_sandbox': False,
         'website': 'https://www.kraken.com',
         'api_key_url': 'https://www.kraken.com/u/security/api',
+        'guide_url': 'https://support.kraken.com/articles/360000919966-how-to-create-an-api-key',
     },
     'coinbase': {
         'name': 'Coinbase Advanced (Beta)',
@@ -32,6 +33,7 @@ SUPPORTED_EXCHANGES: dict[str, dict] = {
         'has_sandbox': False,
         'website': 'https://www.coinbase.com',
         'api_key_url': 'https://www.coinbase.com/settings/api',
+        'guide_url': 'https://docs.cdp.coinbase.com/exchange/introduction/rest-quickstart',
     },
     # 'binance': {
     #     'name': 'Binance',
@@ -91,6 +93,7 @@ def get_supported_exchanges() -> list[dict]:
             'has_sandbox': meta.get('has_sandbox', False),
             'website': meta.get('website', ''),
             'api_key_url': meta.get('api_key_url', ''),
+            'guide_url': meta.get('guide_url', ''),
         }
         for key, meta in SUPPORTED_EXCHANGES.items()
     ]

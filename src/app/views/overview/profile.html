@@ -41,7 +41,11 @@
         <h3 class="subsection-title">Add New Connection</h3>
         <form id="add-connection-form" onsubmit="return false;">
           <div class="form-group">
-            <label for="new-exchange-name" class="form-label">Exchange</label>
+            <label for="new-exchange-name" class="form-label">Exchange
+              <span class="help-tooltip-wrapper d-none" id="exchange-guide-wrapper">
+                <a class="help-icon" id="exchange-guide-link" href="#" target="_blank" rel="noopener noreferrer" title="How to get API keys" aria-label="API key guide">?</a>
+              </span>
+            </label>
             <select id="new-exchange-name" class="form-control">
               <option value="" disabled selected>Loading exchanges...</option>
             </select>

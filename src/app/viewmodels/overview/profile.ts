@@ -53,6 +53,16 @@ class ProfileController {
           (document.getElementById('new-is-sandbox') as HTMLInputElement).checked = false;
         }
       }
+      const guideWrapper = document.getElementById('exchange-guide-wrapper');
+      const guideLink = document.getElementById('exchange-guide-link') as HTMLAnchorElement;
+      if (guideWrapper && guideLink) {
+        if (exchange?.guide_url) {
+          guideLink.href = exchange.guide_url;
+          guideWrapper.classList.remove('d-none');
+        } else {
+          guideWrapper.classList.add('d-none');
+        }
+      }
     });
   }
 
@@ -214,6 +224,11 @@ class ProfileController {
   }
 
   private async validateConnection(connectionId: number): Promise<void> {
+    const btn = document.querySelector(`[data-action="validate"][data-conn-id="${connectionId}"]`) as HTMLButtonElement;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+    }
     try {
       const result = await ExchangeController.validateConnection(connectionId);
       if (result.valid) {
@@ -229,6 +244,10 @@ class ProfileController {
       await UserController.refreshKeyStatus();
     } catch (error: any) {
       this.showError('keys', error.message || 'Failed to validate connection');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plug"></i> Test';
+      }
     }
   }
 

@@ -72,13 +72,13 @@ body.theme-light {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: rgba(99, 102, 241, 0.15);
   border: 1px solid rgba(99, 102, 241, 0.35);
   color: var(--accent-purple-light);
-  font-size: 0.6rem;
+  font-size: 0.7rem;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;

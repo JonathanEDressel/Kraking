@@ -101,13 +101,19 @@
 }
 
 .profile-card .form-label {
-  display: block;
+  display: flex;
+  align-items: center;
   font-weight: 600;
   color: var(--text-muted);
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+a.help-icon {
+  text-decoration: none;
+  color: inherit;
 }
 
 .profile-card .form-control {
