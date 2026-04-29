@@ -14,20 +14,25 @@ class AutomationDbContext:
                     cooldown_minutes: int = 1440,
                     trigger_exchange_id: int = None,
                     action_exchange_id: int = None,
-                    convert_to_asset: str = None) -> int:
+                    convert_to_asset: str = None,
+                    trigger_price_quote_asset: str = None,
+                    action_amount_mode: str = None,
+                    max_executions: int = None) -> int:
         return execute_insert(
             '''INSERT INTO automation_rules
                (user_id, rule_name, trigger_type, trigger_order_id,
                 trigger_pair, trigger_side, action_type, action_asset,
                 action_address_key, action_amount, use_filled_amount,
                 trigger_asset, trigger_threshold, cooldown_minutes,
-                trigger_exchange_id, action_exchange_id, convert_to_asset)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                     trigger_exchange_id, action_exchange_id, convert_to_asset,
+                     trigger_price_quote_asset, action_amount_mode, max_executions)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
             (user_id, rule_name, trigger_type, trigger_order_id,
              trigger_pair, trigger_side, action_type, action_asset,
              action_address_key, action_amount, use_filled_amount,
              trigger_asset, trigger_threshold, cooldown_minutes,
-             trigger_exchange_id, action_exchange_id, convert_to_asset)
+                 trigger_exchange_id, action_exchange_id, convert_to_asset,
+                 trigger_price_quote_asset, action_amount_mode, max_executions)
         )
 
     @staticmethod
@@ -63,6 +68,14 @@ class AutomationDbContext:
         return True
 
     @staticmethod
+    def deactivate_rule(rule_id: int, user_id: int) -> bool:
+        execute_non_query(
+            'UPDATE automation_rules SET is_active = 0 WHERE id = ? AND user_id = ?',
+            (rule_id, user_id)
+        )
+        return True
+
+    @staticmethod
     def delete_rule(rule_id: int, user_id: int) -> bool:
         execute_non_query(
             'DELETE FROM automation_rules WHERE id = ? AND user_id = ?',
@@ -76,6 +89,15 @@ class AutomationDbContext:
             '''UPDATE automation_rules 
                SET last_triggered_at = datetime('now'), last_executed_at = datetime('now'),
                    trigger_count = trigger_count + 1
+               WHERE id = ?''',
+            (rule_id,)
+        )
+
+    @staticmethod
+    def mark_rule_execution_success(rule_id: int) -> None:
+        execute_non_query(
+            '''UPDATE automation_rules
+               SET execution_count = execution_count + 1
                WHERE id = ?''',
             (rule_id,)
         )

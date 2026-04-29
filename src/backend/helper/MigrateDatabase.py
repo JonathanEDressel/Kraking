@@ -162,6 +162,26 @@ def run_column_migrations():
             conn.execute("ALTER TABLE users ADD COLUMN theme TEXT NOT NULL DEFAULT 'dark'")
             conn.commit()
             print("[MIGRATION] Added theme column to users")
+
+        if not _has_column(conn, 'automation_rules', 'trigger_price_quote_asset'):
+            conn.execute('ALTER TABLE automation_rules ADD COLUMN trigger_price_quote_asset TEXT')
+            conn.commit()
+            print("[MIGRATION] Added trigger_price_quote_asset column to automation_rules")
+
+        if not _has_column(conn, 'automation_rules', 'action_amount_mode'):
+            conn.execute('ALTER TABLE automation_rules ADD COLUMN action_amount_mode TEXT')
+            conn.commit()
+            print("[MIGRATION] Added action_amount_mode column to automation_rules")
+
+        if not _has_column(conn, 'automation_rules', 'max_executions'):
+            conn.execute('ALTER TABLE automation_rules ADD COLUMN max_executions INTEGER')
+            conn.commit()
+            print("[MIGRATION] Added max_executions column to automation_rules")
+
+        if not _has_column(conn, 'automation_rules', 'execution_count'):
+            conn.execute('ALTER TABLE automation_rules ADD COLUMN execution_count INTEGER DEFAULT 0')
+            conn.commit()
+            print("[MIGRATION] Added execution_count column to automation_rules")
     except Exception as e:
         conn.rollback()
         print(f"[MIGRATION ERROR] Column migration failed: {e}")

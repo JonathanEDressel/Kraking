@@ -58,6 +58,10 @@ def setup_database():
                 trigger_exchange_id INTEGER,
                 action_exchange_id INTEGER,
                 convert_to_asset TEXT,
+                trigger_price_quote_asset TEXT,
+                action_amount_mode TEXT,
+                max_executions INTEGER,
+                execution_count INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (trigger_exchange_id) REFERENCES exchange_connections(id) ON DELETE SET NULL,
                 FOREIGN KEY (action_exchange_id) REFERENCES exchange_connections(id) ON DELETE SET NULL
@@ -139,6 +143,10 @@ def setup_database():
             'ALTER TABLE automation_rules ADD COLUMN trigger_threshold TEXT',
             'ALTER TABLE automation_rules ADD COLUMN last_executed_at DATETIME NULL',
             'ALTER TABLE automation_rules ADD COLUMN cooldown_minutes INTEGER DEFAULT 1440',
+            'ALTER TABLE automation_rules ADD COLUMN trigger_price_quote_asset TEXT',
+            'ALTER TABLE automation_rules ADD COLUMN action_amount_mode TEXT',
+            'ALTER TABLE automation_rules ADD COLUMN max_executions INTEGER',
+            'ALTER TABLE automation_rules ADD COLUMN execution_count INTEGER DEFAULT 0',
         ]:
             try:
                 conn.execute(migration)

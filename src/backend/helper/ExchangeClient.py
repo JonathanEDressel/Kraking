@@ -165,3 +165,35 @@ def convert(exchange: ccxt.Exchange, from_asset: str, to_asset: str,
         f"No trading pair found for {from_asset}/{to_asset} or "
         f"{to_asset}/{from_asset} on {exchange.id}"
     )
+
+
+def get_market_price(exchange: ccxt.Exchange, base_asset: str, quote_asset: str) -> float:
+    """Return latest market price for base/quote.
+
+    If only the inverse pair exists, the returned price is inverted.
+    """
+    exchange.load_markets()
+
+    direct_symbol = f"{base_asset}/{quote_asset}"
+    inverse_symbol = f"{quote_asset}/{base_asset}"
+
+    if direct_symbol in exchange.markets:
+        ticker = exchange.fetch_ticker(direct_symbol)
+        price = ticker.get('last')
+        if price is None:
+            raise ValueError(f"No last price available for {direct_symbol}")
+        return float(price)
+
+    if inverse_symbol in exchange.markets:
+        ticker = exchange.fetch_ticker(inverse_symbol)
+        price = ticker.get('last')
+        if price is None:
+            raise ValueError(f"No last price available for {inverse_symbol}")
+        price = float(price)
+        if price <= 0:
+            raise ValueError(f"Invalid inverse price for {inverse_symbol}")
+        return 1.0 / price
+
+    raise ValueError(
+        f"No trading pair found for {direct_symbol} or {inverse_symbol} on {exchange.id}"
+    )

@@ -8,7 +8,7 @@ from helper.ExchangeRegistry import get_minimum_withdrawal, get_all_minimums
 
 automation_bp = Blueprint('automation', __name__)
 
-VALID_TRIGGER_TYPES = ['order_filled', 'balance_threshold']
+VALID_TRIGGER_TYPES = ['order_filled', 'balance_threshold', 'price_threshold']
 VALID_ACTION_TYPES = ['withdraw_crypto', 'convert_crypto']
 
 
@@ -42,6 +42,8 @@ def create_rule():
             return bad_request(f"Invalid trigger type. Must be one of: {', '.join(VALID_TRIGGER_TYPES)}")
         if action_type not in VALID_ACTION_TYPES:
             return bad_request(f"Invalid action type. Must be one of: {', '.join(VALID_ACTION_TYPES)}")
+        if trigger_type == 'price_threshold' and action_type != 'convert_crypto':
+            return bad_request("Price threshold trigger requires 'convert_crypto' action")
 
         # Validate exchange connections
         trigger_exchange_id = data.get('trigger_exchange_id')
@@ -78,13 +80,14 @@ def create_rule():
         # Validate balance_threshold trigger params
         trigger_asset = data.get('trigger_asset', '').strip() or None
         trigger_threshold = data.get('trigger_threshold', '').strip() or None
+        trigger_price_quote_asset = data.get('trigger_price_quote_asset', '').strip().upper() or None
         cooldown_minutes = data.get('cooldown_minutes', 1440)
 
-        if trigger_type == 'balance_threshold':
+        if trigger_type in ('balance_threshold', 'price_threshold'):
             if not trigger_asset:
-                return bad_request("Asset is required for 'balance_threshold' trigger")
+                return bad_request("Asset is required for this trigger")
             if not trigger_threshold:
-                return bad_request("Threshold amount is required for 'balance_threshold' trigger")
+                return bad_request("Threshold value is required for this trigger")
             try:
                 threshold_val = float(trigger_threshold)
                 if threshold_val <= 0:
@@ -98,12 +101,27 @@ def create_rule():
             except (ValueError, TypeError):
                 return bad_request("Cooldown must be a valid number")
 
+        if trigger_type == 'price_threshold' and not trigger_price_quote_asset:
+            return bad_request("Quote asset is required for 'price_threshold' trigger")
+
         # Validate action params
         action_asset = data.get('action_asset', '').strip() or None
         action_address_key = data.get('action_address_key', '').strip() or None
         action_amount = data.get('action_amount', '').strip() or None
+        action_amount_mode = data.get('action_amount_mode', '').strip() or None
         use_filled_amount = bool(data.get('use_filled_amount', False))
         convert_to_asset = data.get('convert_to_asset', '').strip() or None
+        max_executions = data.get('max_executions', None)
+
+        if max_executions in ('', None):
+            max_executions = None
+        else:
+            try:
+                max_executions = int(max_executions)
+                if max_executions < 1:
+                    return bad_request("Max executions must be at least 1")
+            except (ValueError, TypeError):
+                return bad_request("Max executions must be a valid number")
 
         if action_type == 'withdraw_crypto':
             if not action_asset:
@@ -131,16 +149,36 @@ def create_rule():
                     pass
 
         elif action_type == 'convert_crypto':
-            if trigger_type != 'balance_threshold':
-                return bad_request("Convert Crypto is only available with the Balance Threshold trigger")
+            if trigger_type not in ('balance_threshold', 'price_threshold'):
+                return bad_request("Convert Crypto is only available with the Balance Threshold or Price Threshold trigger")
             if not action_asset:
                 return bad_request("Source asset is required for convert action")
             if not convert_to_asset:
                 return bad_request("Target asset is required for convert action")
             if action_asset == convert_to_asset:
                 return bad_request("Source and target assets must be different")
-            # Validate optional fixed amount
-            if action_amount:
+
+            if trigger_type == 'price_threshold':
+                if action_asset != trigger_asset:
+                    return bad_request("Price threshold source asset must match monitored trigger asset")
+                if action_amount_mode not in ('all', 'percent', 'fixed'):
+                    return bad_request("Price threshold requires amount mode: all, percent, or fixed")
+                if action_amount_mode == 'all':
+                    action_amount = ''
+                elif not action_amount:
+                    return bad_request("Amount is required for percent/fixed amount modes")
+
+            # Validate optional or required amount (based on mode)
+            if action_amount_mode in ('percent', 'fixed') and action_amount:
+                try:
+                    amount_val = float(action_amount)
+                    if amount_val <= 0:
+                        return bad_request("Convert amount must be a positive number")
+                    if action_amount_mode == 'percent' and amount_val > 100:
+                        return bad_request("Percent amount must be between 0 and 100")
+                except (ValueError, TypeError):
+                    return bad_request("Convert amount must be a valid number")
+            elif action_amount and trigger_type == 'balance_threshold':
                 try:
                     amount_val = float(action_amount)
                     if amount_val <= 0:
@@ -167,6 +205,9 @@ def create_rule():
             trigger_exchange_id=trigger_exchange_id,
             action_exchange_id=action_exchange_id,
             convert_to_asset=convert_to_asset,
+            trigger_price_quote_asset=trigger_price_quote_asset,
+            action_amount_mode=action_amount_mode,
+            max_executions=max_executions,
         )
 
         rule = AutomationDbContext.get_rule_by_id(rule_id, request.user_id)

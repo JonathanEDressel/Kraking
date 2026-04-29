@@ -612,6 +612,16 @@ class HomeController {
         + `<span class="asset-badge">${this.escapeHtml(asset)}</span>`
         + `<br><span class="cooldown-text">Cooldown: ${cooldown}</span>`;
     }
+    if (rule.trigger_type === 'price_threshold') {
+      const asset = rule.trigger_asset || '';
+      const quote = rule.trigger_price_quote_asset || 'USDT';
+      const threshold = rule.trigger_threshold || '0';
+      const cooldown = this.formatCooldown(rule.cooldown_minutes || 1);
+      return `<span class="trigger-badge trigger-badge-balance">Price ≥</span> `
+        + `<strong>${this.escapeHtml(threshold)}</strong> `
+        + `<span class="asset-badge">${this.escapeHtml(quote)}</span>`
+        + `<br><span class="cooldown-text">${this.escapeHtml(asset)}/${this.escapeHtml(quote)} | Cooldown: ${cooldown}</span>`;
+    }
     return this.escapeHtml(rule.trigger_type);
   }
 
@@ -630,9 +640,25 @@ class HomeController {
         + `→ ${this.escapeHtml(rule.action_address_key)}`;
     }
     if (rule.action_type === 'convert_crypto') {
-      const convertAmountText = rule.action_amount
+      let convertAmountText = rule.action_amount
         ? `<strong>${this.escapeHtml(rule.action_amount)}</strong>`
         : '<em>Full Balance</em>';
+      if (rule.trigger_type === 'price_threshold') {
+        const mode = (rule.action_amount_mode || 'all').toLowerCase();
+        const done = Number(rule.execution_count || 0);
+        const max = rule.max_executions == null ? 'unlimited' : String(rule.max_executions);
+        if (mode === 'percent') {
+          convertAmountText = `<strong>${this.escapeHtml(rule.action_amount)}%</strong>`;
+        } else if (mode === 'fixed') {
+          convertAmountText = `<strong>${this.escapeHtml(rule.action_amount)}</strong>`;
+        } else {
+          convertAmountText = '<em>Sell All</em>';
+        }
+        return `Convert ${convertAmountText} `
+          + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
+          + `→ <span class="asset-badge">${this.escapeHtml(rule.convert_to_asset || '?')}</span>`
+          + `<br><span class="cooldown-text">Success: ${done}/${this.escapeHtml(max)}</span>`;
+      }
       return `Convert ${convertAmountText} `
         + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
         + `→ <span class="asset-badge">${this.escapeHtml(rule.convert_to_asset || '?')}</span>`;

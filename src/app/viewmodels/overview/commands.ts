@@ -19,6 +19,7 @@ class CommandsController {
 
   private init(): void {
     this.attachEventListeners();
+    this.onTriggerTypeChanged();
     this.initExchangeSelector();
     this.loadRules();
     this.loadLogs();
@@ -171,6 +172,42 @@ class CommandsController {
     });
 
     document.getElementById('trigger-threshold')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('price-trigger-asset')?.addEventListener('change', () => {
+      this.onPriceTriggerAssetChanged();
+    });
+
+    document.getElementById('price-trigger-threshold')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('price-quote-asset')?.addEventListener('change', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('price-convert-to-asset')?.addEventListener('change', () => {
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('price-unlimited')?.addEventListener('change', () => {
+      this.onPriceUnlimitedChanged();
+      this.updateRuleSummary();
+    });
+
+    document.getElementById('price-max-executions')?.addEventListener('input', () => {
+      this.updateRuleSummary();
+    });
+
+    document.querySelectorAll('input[name="price-amount-mode"]').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        this.onPriceAmountModeChanged();
+        this.updateRuleSummary();
+      });
+    });
+
+    document.getElementById('price-amount-value')?.addEventListener('input', () => {
       this.updateRuleSummary();
     });
 
@@ -355,6 +392,15 @@ class CommandsController {
 
     const convertAmountSection = document.getElementById('convert-amount-section');
 
+    if (triggerType === 'price_threshold') {
+      withdrawFields?.classList.add('d-none');
+      convertFields?.classList.add('d-none');
+      amountModeSection?.classList.add('d-none');
+      convertAmountSection?.classList.add('d-none');
+      this.updateRuleSummary();
+      return;
+    }
+
     if (actionType === 'convert_crypto' && triggerType === 'balance_threshold') {
       withdrawFields?.classList.add('d-none');
       convertFields?.classList.remove('d-none');
@@ -433,7 +479,11 @@ class CommandsController {
     const triggerType = (document.getElementById('trigger-type') as HTMLSelectElement).value;
     const orderSection = document.getElementById('trigger-order-section');
     const balanceSections = document.querySelectorAll('.trigger-balance-section');
+    const priceSections = document.querySelectorAll('.trigger-price-section');
     const amountModeSection = document.getElementById('amount-mode-section');
+    const actionTypeSelect = document.getElementById('action-type') as HTMLSelectElement;
+
+    priceSections.forEach(el => el.classList.add('d-none'));
 
     if (triggerType === 'balance_threshold') {
       orderSection?.classList.add('d-none');
@@ -472,6 +522,31 @@ class CommandsController {
       document.querySelectorAll('input[name="amount-mode"]').forEach((r) => {
         (r as HTMLInputElement).disabled = false;
       });
+      this.onActionTypeChanged();
+    } else if (triggerType === 'price_threshold') {
+      orderSection?.classList.add('d-none');
+      balanceSections.forEach(el => el.classList.add('d-none'));
+      document.getElementById('cooldown-section')?.classList.remove('d-none');
+      priceSections.forEach(el => el.classList.remove('d-none'));
+      amountModeSection?.classList.add('d-none');
+
+      // Force convert action for price-trigger rules
+      if (actionTypeSelect) {
+        actionTypeSelect.value = 'convert_crypto';
+      }
+
+      const withdrawOption = actionTypeSelect?.querySelector('option[value="withdraw_crypto"]') as HTMLOptionElement;
+      if (withdrawOption) withdrawOption.disabled = true;
+
+      const convertOption = actionTypeSelect?.querySelector('option[value="convert_crypto"]') as HTMLOptionElement;
+      if (convertOption) convertOption.disabled = false;
+
+      this.resetDependentFields();
+      this.loadBalances();
+      this.loadPriceAssets();
+      this.onPriceAmountModeChanged();
+      this.onPriceUnlimitedChanged();
+      this.onActionTypeChanged();
     } else {
       // Show order fields, hide balance fields
       orderSection?.classList.remove('d-none');
@@ -482,6 +557,8 @@ class CommandsController {
       const actionTypeSelectOF = document.getElementById('action-type') as HTMLSelectElement;
       const convertOptionOF = actionTypeSelectOF?.querySelector('option[value="convert_crypto"]') as HTMLOptionElement;
       if (convertOptionOF) convertOptionOF.disabled = true;
+      const withdrawOptionOF = actionTypeSelectOF?.querySelector('option[value="withdraw_crypto"]') as HTMLOptionElement;
+      if (withdrawOptionOF) withdrawOptionOF.disabled = false;
       if (actionTypeSelectOF && actionTypeSelectOF.value === 'convert_crypto') {
         actionTypeSelectOF.value = 'withdraw_crypto';
         this.onActionTypeChanged();
@@ -535,6 +612,136 @@ class CommandsController {
       triggerAssetSelect.disabled = true;
       thresholdInput.disabled = true;
     }
+  }
+
+  private async loadPriceAssets(): Promise<void> {
+    const assetSelect = document.getElementById('price-trigger-asset') as HTMLSelectElement;
+    const thresholdInput = document.getElementById('price-trigger-threshold') as HTMLInputElement;
+
+    try {
+      this.balances = await ExchangeController.getBalance(this.selectedConnectionId!);
+
+      assetSelect.innerHTML = '';
+      assetSelect.disabled = false;
+
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.disabled = true;
+      placeholder.selected = true;
+      placeholder.textContent = 'Select a coin...';
+      assetSelect.appendChild(placeholder);
+
+      for (const [asset, amount] of Object.entries(this.balances).sort(([a], [b]) => a.localeCompare(b))) {
+        const opt = document.createElement('option');
+        opt.value = asset;
+        opt.textContent = `${asset} (Balance: ${parseFloat(amount).toFixed(8)})`;
+        assetSelect.appendChild(opt);
+      }
+
+      thresholdInput.disabled = false;
+    } catch {
+      assetSelect.innerHTML = '<option value="" disabled selected>Failed to load balances</option>';
+      assetSelect.disabled = true;
+      thresholdInput.disabled = true;
+    }
+  }
+
+  private onPriceTriggerAssetChanged(): void {
+    const asset = (document.getElementById('price-trigger-asset') as HTMLSelectElement)?.value;
+    const hint = document.getElementById('price-threshold-hint');
+    const toSelect = document.getElementById('price-convert-to-asset') as HTMLSelectElement;
+
+    if (hint) {
+      const bal = asset ? this.balances[asset] : null;
+      hint.textContent = bal ? `Current balance: ${parseFloat(bal).toFixed(8)} ${asset}` : '';
+    }
+
+    if (!toSelect) return;
+    toSelect.innerHTML = '';
+
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    placeholder.textContent = 'Select target asset...';
+    toSelect.appendChild(placeholder);
+
+    if (!asset) {
+      toSelect.disabled = true;
+      return;
+    }
+
+    const preferredTargets = ['USD', 'USDT', 'USDC', 'EUR', 'BTC', 'ETH'];
+    const allTargets = new Set<string>([...preferredTargets, ...Object.keys(this.balances)]);
+    allTargets.delete(asset);
+
+    for (const target of Array.from(allTargets).sort((a, b) => a.localeCompare(b))) {
+      const opt = document.createElement('option');
+      opt.value = target;
+      opt.textContent = target;
+      toSelect.appendChild(opt);
+    }
+    toSelect.disabled = false;
+
+    this.updatePriceAmountHint();
+    this.updateRuleSummary();
+  }
+
+  private onPriceAmountModeChanged(): void {
+    const mode = (document.querySelector('input[name="price-amount-mode"]:checked') as HTMLInputElement)?.value || 'all';
+    const amountInput = document.getElementById('price-amount-value') as HTMLInputElement;
+    if (!amountInput) return;
+
+    if (mode === 'all') {
+      amountInput.disabled = true;
+      amountInput.value = '';
+      amountInput.placeholder = 'Not needed for Sell All';
+    } else if (mode === 'percent') {
+      amountInput.disabled = false;
+      amountInput.min = '0';
+      amountInput.max = '100';
+      amountInput.placeholder = 'e.g. 50';
+    } else {
+      amountInput.disabled = false;
+      amountInput.min = '0';
+      amountInput.removeAttribute('max');
+      amountInput.placeholder = 'e.g. 25';
+    }
+
+    this.updatePriceAmountHint();
+  }
+
+  private onPriceUnlimitedChanged(): void {
+    const unlimited = (document.getElementById('price-unlimited') as HTMLInputElement)?.checked ?? true;
+    const input = document.getElementById('price-max-executions') as HTMLInputElement;
+    if (!input) return;
+    input.disabled = unlimited;
+    if (unlimited) input.value = '';
+  }
+
+  private updatePriceAmountHint(): void {
+    const hint = document.getElementById('price-amount-hint');
+    const asset = (document.getElementById('price-trigger-asset') as HTMLSelectElement)?.value;
+    const mode = (document.querySelector('input[name="price-amount-mode"]:checked') as HTMLInputElement)?.value || 'all';
+    if (!hint) return;
+
+    const balance = asset ? parseFloat(this.balances[asset] || '0') : 0;
+    if (!asset || balance <= 0) {
+      hint.textContent = '';
+      return;
+    }
+
+    if (mode === 'all') {
+      hint.textContent = `Will convert full available balance (${balance.toFixed(8)} ${asset}) each execution.`;
+      return;
+    }
+
+    if (mode === 'percent') {
+      hint.textContent = `Percent is applied to your current ${asset} balance each time.`;
+      return;
+    }
+
+    hint.textContent = `Fixed amount will be capped to available balance (${balance.toFixed(8)} ${asset}).`;
   }
 
   private onTriggerAssetChanged(): void {
@@ -750,7 +957,79 @@ class CommandsController {
       action_exchange_id: connectionId,
     };
 
-    if (triggerType === 'balance_threshold') {
+    if (triggerType === 'price_threshold') {
+      const triggerAsset = (document.getElementById('price-trigger-asset') as HTMLSelectElement).value;
+      const triggerThreshold = (document.getElementById('price-trigger-threshold') as HTMLInputElement).value.trim();
+      const triggerQuoteAsset = (document.getElementById('price-quote-asset') as HTMLSelectElement).value;
+      const convertToAsset = (document.getElementById('price-convert-to-asset') as HTMLSelectElement).value;
+      const amountMode = (document.querySelector('input[name="price-amount-mode"]:checked') as HTMLInputElement)?.value || 'all';
+      const amountValue = (document.getElementById('price-amount-value') as HTMLInputElement).value.trim();
+      const unlimited = (document.getElementById('price-unlimited') as HTMLInputElement)?.checked ?? true;
+      const maxExecutionsRaw = (document.getElementById('price-max-executions') as HTMLInputElement)?.value.trim();
+      const cooldownHours = parseInt((document.getElementById('cooldown-hours') as HTMLInputElement).value || '0', 10);
+      const cooldownMins = parseInt((document.getElementById('cooldown-minutes') as HTMLInputElement).value || '0', 10);
+      const totalCooldown = (cooldownHours * 60) + cooldownMins;
+
+      if (!triggerAsset) {
+        this.showError('Please select the coin to monitor/sell');
+        return;
+      }
+      if (!triggerThreshold || parseFloat(triggerThreshold) <= 0) {
+        this.showError('Trigger price must be a positive number');
+        return;
+      }
+      if (!triggerQuoteAsset) {
+        this.showError('Please select a trigger quote currency');
+        return;
+      }
+      if (!convertToAsset) {
+        this.showError('Please select a target currency/coin');
+        return;
+      }
+      if (convertToAsset === triggerAsset) {
+        this.showError('Target currency/coin must be different from source coin');
+        return;
+      }
+      if (totalCooldown < 1) {
+        this.showError('Cooldown must be at least 1 minute');
+        return;
+      }
+
+      if (amountMode !== 'all') {
+        const n = parseFloat(amountValue);
+        if (!amountValue || isNaN(n) || n <= 0) {
+          this.showError('Amount value must be a positive number');
+          return;
+        }
+        if (amountMode === 'percent' && n > 100) {
+          this.showError('Percent amount must be between 0 and 100');
+          return;
+        }
+      }
+
+      let maxExecutions: number | null = null;
+      if (!unlimited) {
+        const maxN = parseInt(maxExecutionsRaw || '0', 10);
+        if (!maxExecutionsRaw || isNaN(maxN) || maxN < 1) {
+          this.showError('Max executions must be at least 1 when unlimited is disabled');
+          return;
+        }
+        maxExecutions = maxN;
+      }
+
+      payload.action_type = 'convert_crypto';
+      payload.trigger_asset = triggerAsset;
+      payload.trigger_threshold = triggerThreshold;
+      payload.trigger_price_quote_asset = triggerQuoteAsset;
+      payload.cooldown_minutes = totalCooldown;
+      payload.action_asset = triggerAsset;
+      payload.action_address_key = '';
+      payload.convert_to_asset = convertToAsset;
+      payload.action_amount_mode = amountMode;
+      payload.action_amount = amountMode === 'all' ? '' : amountValue;
+      payload.use_filled_amount = false;
+      payload.max_executions = maxExecutions;
+    } else if (triggerType === 'balance_threshold') {
       const triggerAsset = (document.getElementById('trigger-asset') as HTMLSelectElement).value;
       const triggerThreshold = (document.getElementById('trigger-threshold') as HTMLInputElement).value.trim();
       const cooldownHours = parseInt((document.getElementById('cooldown-hours') as HTMLInputElement).value || '0', 10);
@@ -892,9 +1171,15 @@ class CommandsController {
       const toggleTitle = r.is_active ? 'Pause' : 'Resume';
       const triggerText = this.formatTrigger(r);
       const actionText = this.formatAction(r);
-      const triggered = r.trigger_count > 0
+      let triggered = r.trigger_count > 0
         ? `${r.trigger_count}x (${new Date(r.last_triggered_at.endsWith('Z') ? r.last_triggered_at : r.last_triggered_at + 'Z').toLocaleString()})`
         : 'Never';
+
+      if (r.trigger_type === 'price_threshold') {
+        const done = Number(r.execution_count || 0);
+        const max = r.max_executions == null ? 'unlimited' : String(r.max_executions);
+        triggered += ` | Success: ${done}/${max}`;
+      }
 
       return `<tr>
         <td class="rule-name-cell">${this.escapeHtml(r.rule_name)}</td>
@@ -930,6 +1215,16 @@ class CommandsController {
         + `<span class="asset-badge">${this.escapeHtml(asset)}</span>`
         + `<br><span class="cooldown-text">Cooldown: ${cooldown}</span>`;
     }
+    if (rule.trigger_type === 'price_threshold') {
+      const asset = rule.trigger_asset || '';
+      const quote = rule.trigger_price_quote_asset || 'USDT';
+      const threshold = rule.trigger_threshold || '0';
+      const cooldown = this.formatCooldown(rule.cooldown_minutes || 1);
+      return `<span class="trigger-badge trigger-badge-balance">Price ≥</span> `
+        + `<strong>${this.escapeHtml(threshold)}</strong> `
+        + `<span class="asset-badge">${this.escapeHtml(quote)}</span>`
+        + `<br><span class="cooldown-text">${this.escapeHtml(asset)}/${this.escapeHtml(quote)} | Cooldown: ${cooldown}</span>`;
+    }
     return this.escapeHtml(rule.trigger_type);
   }
 
@@ -948,9 +1243,19 @@ class CommandsController {
         + `→ ${this.escapeHtml(rule.action_address_key)}`;
     }
     if (rule.action_type === 'convert_crypto') {
-      const convertAmountText = rule.action_amount
+      let convertAmountText = rule.action_amount
         ? `<strong>${this.escapeHtml(rule.action_amount)}</strong>`
         : '<em>Full Balance</em>';
+      if (rule.trigger_type === 'price_threshold') {
+        const mode = (rule.action_amount_mode || 'all').toLowerCase();
+        if (mode === 'percent') {
+          convertAmountText = `<strong>${this.escapeHtml(rule.action_amount)}%</strong>`;
+        } else if (mode === 'fixed') {
+          convertAmountText = `<strong>${this.escapeHtml(rule.action_amount)}</strong>`;
+        } else {
+          convertAmountText = '<em>Sell All</em>';
+        }
+      }
       return `Convert ${convertAmountText} `
         + `<span class="asset-badge">${this.escapeHtml(rule.action_asset)}</span> `
         + `→ <span class="asset-badge">${this.escapeHtml(rule.convert_to_asset || '?')}</span>`;
@@ -1036,6 +1341,26 @@ class CommandsController {
     if (cooldownHours) cooldownHours.value = '24';
     const cooldownMins = document.getElementById('cooldown-minutes') as HTMLInputElement;
     if (cooldownMins) cooldownMins.value = '0';
+
+    const priceAsset = document.getElementById('price-trigger-asset') as HTMLSelectElement;
+    if (priceAsset) priceAsset.selectedIndex = 0;
+    const priceThreshold = document.getElementById('price-trigger-threshold') as HTMLInputElement;
+    if (priceThreshold) priceThreshold.value = '';
+    const priceQuote = document.getElementById('price-quote-asset') as HTMLSelectElement;
+    if (priceQuote) priceQuote.value = 'USDT';
+    const priceTo = document.getElementById('price-convert-to-asset') as HTMLSelectElement;
+    if (priceTo) priceTo.selectedIndex = 0;
+    const priceAllRadio = document.querySelector('input[name="price-amount-mode"][value="all"]') as HTMLInputElement;
+    if (priceAllRadio) priceAllRadio.checked = true;
+    const priceAmount = document.getElementById('price-amount-value') as HTMLInputElement;
+    if (priceAmount) priceAmount.value = '';
+    const priceUnlimited = document.getElementById('price-unlimited') as HTMLInputElement;
+    if (priceUnlimited) priceUnlimited.checked = true;
+    const priceMax = document.getElementById('price-max-executions') as HTMLInputElement;
+    if (priceMax) {
+      priceMax.value = '';
+      priceMax.disabled = true;
+    }
 
     this.onTriggerTypeChanged();
     this.resetDependentFields();
@@ -1185,7 +1510,34 @@ class CommandsController {
 
     let summary = '';
 
-    if (triggerType === 'balance_threshold') {
+    if (triggerType === 'price_threshold') {
+      const asset = (document.getElementById('price-trigger-asset') as HTMLSelectElement)?.value;
+      const triggerPrice = (document.getElementById('price-trigger-threshold') as HTMLInputElement)?.value;
+      const quote = (document.getElementById('price-quote-asset') as HTMLSelectElement)?.value || 'USDT';
+      const target = (document.getElementById('price-convert-to-asset') as HTMLSelectElement)?.value;
+      const mode = (document.querySelector('input[name="price-amount-mode"]:checked') as HTMLInputElement)?.value || 'all';
+      const amount = (document.getElementById('price-amount-value') as HTMLInputElement)?.value;
+      const unlimited = (document.getElementById('price-unlimited') as HTMLInputElement)?.checked ?? true;
+      const maxExec = (document.getElementById('price-max-executions') as HTMLInputElement)?.value;
+      const cooldownHours = parseInt((document.getElementById('cooldown-hours') as HTMLInputElement)?.value || '0', 10);
+      const cooldownMins = parseInt((document.getElementById('cooldown-minutes') as HTMLInputElement)?.value || '0', 10);
+      const totalCooldown = (cooldownHours * 60) + cooldownMins;
+
+      if (!asset || !triggerPrice || !target) {
+        summaryContainer.classList.add('d-none');
+        return;
+      }
+
+      const amountDisplay = mode === 'all'
+        ? `sell all ${asset}`
+        : mode === 'percent'
+          ? `convert ${amount || '___'}% of ${asset}`
+          : `convert ${amount || '___'} ${asset}`;
+      const maxDisplay = unlimited ? 'unlimited times' : `${maxExec || '___'} times`;
+      const cooldownDisplay = this.formatCooldown(totalCooldown);
+
+      summary = `When ${asset}/${quote} hits ${parseFloat(triggerPrice).toFixed(8).replace(/\.?0+$/, '')}, ${amountDisplay} to ${target}, then wait ${cooldownDisplay} between runs, up to ${maxDisplay}`;
+    } else if (triggerType === 'balance_threshold') {
       const triggerAsset = (document.getElementById('trigger-asset') as HTMLSelectElement)?.value;
       const threshold = (document.getElementById('trigger-threshold') as HTMLInputElement)?.value;
       const cooldownHours = parseInt((document.getElementById('cooldown-hours') as HTMLInputElement)?.value || '0', 10);

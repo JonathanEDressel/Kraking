@@ -38,6 +38,7 @@
           <select id="trigger-type">
             <option value="order_filled">Order is Filled</option>
             <option value="balance_threshold">Balance Threshold</option>
+            <option value="price_threshold">Price Threshold</option>
           </select>
         </div>
         <div class="form-group trigger-order-section" id="trigger-order-section">
@@ -60,6 +61,74 @@
           <label for="trigger-threshold" data-help="The minimum balance that triggers this rule. The rule fires when the asset balance is greater than or equal to this amount.">Threshold Amount</label>
           <input type="number" id="trigger-threshold" step="any" min="0" placeholder="e.g. 0.001" disabled>
           <span class="form-hint" id="threshold-hint"></span>
+        </div>
+      </div>
+
+      <div class="form-row trigger-price-section d-none" id="trigger-price-section">
+        <div class="form-group">
+          <label for="price-trigger-asset" data-help="The coin to monitor and sell when the trigger price is reached.">Coin to Monitor/Sell</label>
+          <select id="price-trigger-asset" disabled>
+            <option value="" disabled selected>Loading balances...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="price-trigger-threshold" data-help="Execute when current price is greater than or equal to this value.">Trigger Price</label>
+          <input type="number" id="price-trigger-threshold" step="any" min="0" placeholder="e.g. 0.67" disabled>
+          <span class="form-hint" id="price-threshold-hint"></span>
+        </div>
+      </div>
+
+      <div class="form-row trigger-price-section d-none" id="price-trigger-quote-row">
+        <div class="form-group">
+          <label for="price-quote-asset" data-help="The quote currency used for the trigger price check.">Price Quote Currency</label>
+          <select id="price-quote-asset">
+            <option value="USD">USD</option>
+            <option value="USDT" selected>USDT</option>
+            <option value="USDC">USDC</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="price-convert-to-asset" data-help="The currency or coin you want to receive after selling/converting.">Convert Into</label>
+          <select id="price-convert-to-asset" disabled>
+            <option value="" disabled selected>Select a coin first</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row trigger-price-section d-none" id="price-amount-section">
+        <div class="form-group">
+          <label data-help="Choose how much of your holdings to convert each time the rule triggers.">Sell Amount Mode</label>
+          <div class="amount-mode-group">
+            <label class="radio-label">
+              <input type="radio" name="price-amount-mode" value="all" checked>
+              <span>Sell All</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="price-amount-mode" value="percent">
+              <span>Percent</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="price-amount-mode" value="fixed">
+              <span>Fixed Amount</span>
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="price-amount-value" data-help="For percent mode enter 1-100. For fixed mode enter amount of the source coin.">Amount Value</label>
+          <input type="number" id="price-amount-value" step="any" min="0" placeholder="Only used for percent/fixed" disabled>
+          <span class="form-hint" id="price-amount-hint"></span>
+        </div>
+      </div>
+
+      <div class="form-row trigger-price-section d-none" id="price-execution-limit-row">
+        <div class="form-group">
+          <label data-help="Unlimited means this rule can run forever (until disabled).">Execution Limit</label>
+          <label class="radio-label" style="margin-bottom: 8px;">
+            <input type="checkbox" id="price-unlimited" checked>
+            <span>Unlimited executions</span>
+          </label>
+          <input type="number" id="price-max-executions" min="1" step="1" placeholder="e.g. 5" disabled>
+          <span class="form-hint">Rule auto-pauses after reaching max successful executions</span>
         </div>
       </div>
 

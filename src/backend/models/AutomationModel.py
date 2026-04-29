@@ -23,7 +23,11 @@ class AutomationRule:
                  trigger_count: int = 0,
                  trigger_exchange_id: Optional[int] = None,
                  action_exchange_id: Optional[int] = None,
-                 convert_to_asset: Optional[str] = None):
+                 convert_to_asset: Optional[str] = None,
+                 trigger_price_quote_asset: Optional[str] = None,
+                 action_amount_mode: Optional[str] = None,
+                 max_executions: Optional[int] = None,
+                 execution_count: int = 0):
         self.id = id
         self.user_id = user_id
         self.rule_name = rule_name
@@ -47,6 +51,10 @@ class AutomationRule:
         self.trigger_exchange_id = trigger_exchange_id
         self.action_exchange_id = action_exchange_id
         self.convert_to_asset = convert_to_asset
+        self.trigger_price_quote_asset = trigger_price_quote_asset
+        self.action_amount_mode = action_amount_mode
+        self.max_executions = max_executions
+        self.execution_count = execution_count
 
     @staticmethod
     def from_row(row: dict) -> 'AutomationRule':
@@ -76,7 +84,16 @@ class AutomationRule:
             trigger_exchange_id=row.get('trigger_exchange_id'),
             action_exchange_id=row.get('action_exchange_id'),
             convert_to_asset=row.get('convert_to_asset'),
+            trigger_price_quote_asset=row.get('trigger_price_quote_asset'),
+            action_amount_mode=row.get('action_amount_mode'),
+            max_executions=row.get('max_executions'),
+            execution_count=row.get('execution_count', 0),
         )
+
+    def has_reached_execution_limit(self) -> bool:
+        if self.max_executions is None:
+            return False
+        return int(self.execution_count or 0) >= int(self.max_executions)
 
     def to_dict(self) -> dict:
         # SQLite returns datetime as string, MySQL as datetime object
@@ -111,6 +128,10 @@ class AutomationRule:
             'trigger_exchange_id': self.trigger_exchange_id,
             'action_exchange_id': self.action_exchange_id,
             'convert_to_asset': self.convert_to_asset,
+            'trigger_price_quote_asset': self.trigger_price_quote_asset,
+            'action_amount_mode': self.action_amount_mode,
+            'max_executions': self.max_executions,
+            'execution_count': self.execution_count,
         }
 
 
