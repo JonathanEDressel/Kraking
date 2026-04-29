@@ -122,7 +122,7 @@
 
       <div class="form-row trigger-price-section d-none" id="price-execution-limit-row">
         <div class="form-group">
-          <label data-help="Unlimited means this rule can run forever (until disabled).">Execution Limit</label>
+          <label data-help="Number of times this custom command can successfully execute.">Execution Limit</label>
           <label class="radio-label" style="margin-bottom: 8px;">
             <input type="checkbox" id="price-unlimited" checked>
             <span>Unlimited executions</span>
@@ -149,11 +149,11 @@
         </div>
       </div>
 
-      <div class="form-divider">
+      <div class="form-divider" id="action-type-divider">
         <span class="form-divider-text">THEN</span>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" id="action-type-row">
         <div class="form-group">
           <label for="action-type" data-help="The action to perform when the trigger fires. 'Withdraw Crypto' sends funds to a whitelisted address. 'Convert Crypto' swaps one asset for another via a market order.">Do (Action)</label>
           <select id="action-type">

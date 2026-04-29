@@ -489,6 +489,8 @@ class CommandsController {
       orderSection?.classList.add('d-none');
       balanceSections.forEach(el => el.classList.remove('d-none'));
       amountModeSection?.classList.add('d-none');
+      document.getElementById('action-type-divider')?.classList.remove('d-none');
+      document.getElementById('action-type-row')?.classList.remove('d-none');
 
       // Enable Convert Crypto option for balance threshold
       const actionTypeSelectBT = document.getElementById('action-type') as HTMLSelectElement;
@@ -529,6 +531,8 @@ class CommandsController {
       document.getElementById('cooldown-section')?.classList.remove('d-none');
       priceSections.forEach(el => el.classList.remove('d-none'));
       amountModeSection?.classList.add('d-none');
+      document.getElementById('action-type-divider')?.classList.add('d-none');
+      document.getElementById('action-type-row')?.classList.add('d-none');
 
       // Force convert action for price-trigger rules
       if (actionTypeSelect) {
@@ -552,6 +556,8 @@ class CommandsController {
       orderSection?.classList.remove('d-none');
       balanceSections.forEach(el => el.classList.add('d-none'));
       amountModeSection?.classList.remove('d-none');
+      document.getElementById('action-type-divider')?.classList.remove('d-none');
+      document.getElementById('action-type-row')?.classList.remove('d-none');
 
       // Disable and deselect Convert Crypto option
       const actionTypeSelectOF = document.getElementById('action-type') as HTMLSelectElement;
