@@ -23,6 +23,8 @@ interface UserModel {
   smtp_password_set: boolean;
   smtp_host: string | null;
   smtp_port: number | null;
+  /** Whether an Anthropic key is on file — the key itself never leaves the server. */
+  anthropic_key_set: boolean;
   exchange_connections: ExchangeConnection[];
   has_validated_connection: boolean;
 }

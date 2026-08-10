@@ -642,6 +642,111 @@ const DemoData = (() => {
     };
   }
 
+  // ── Tracked wallets + the movement roadmap ────────────────────────────────
+
+  const DEMO_WALLETS: any[] = [
+    { id: 5001, label: 'My Ledger', address: 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq',
+      chain: 'Bitcoin', asset: 'BTC', tag: null, is_own: true,
+      notes: 'Cold storage', transfer_count: 2 },
+    { id: 5002, label: 'MetaMask', address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F',
+      chain: 'Ethereum', asset: null, tag: null, is_own: true, notes: null, transfer_count: 1 },
+    { id: 5003, label: 'Rent (not mine)', address: 'GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37',
+      chain: 'Stellar', asset: 'XLM', tag: '1234567890', is_own: false,
+      notes: 'Monthly', transfer_count: 1 },
+  ];
+
+  function wallets(): any[] {
+    return DEMO_WALLETS.map((w) => ({ ...w }));
+  }
+
+  /** One unlabelled address, so the suggestions path has something to show. */
+  function walletSuggestions(): any[] {
+    return [{
+      address: '0x9f2C5B4d1eA83c7Bd6119cF8b7C4A1e0dD3F5b62',
+      network: 'Ethereum', assets: ['USDC'], uses: 2, withdrawals: 1, deposits: 1,
+      last_seen: Math.floor((Date.now() - 33 * DAY) / 1000),
+    }];
+  }
+
+  function ex(label: string, connId: number, exchange: string) {
+    return { type: 'exchange', label, exchange, connection_id: connId };
+  }
+  function wal(id: number, label: string, isOwn: boolean, address: string) {
+    return { type: 'wallet', label, wallet_id: id, is_own: isOwn, address };
+  }
+  function unknown(address: string | null) {
+    return { type: 'unknown', label: address ? 'Unknown wallet' : 'Unknown source', address };
+  }
+  function sec(daysAgo: number): number {
+    return Math.floor((Date.now() - daysAgo * DAY) / 1000);
+  }
+
+  /** Covers every state the roadmap can render: an exact txid pair, a fee-adjusted
+   *  heuristic pair, a labelled own wallet both ways, someone else's labelled
+   *  address, an unresolved suggestion awaiting confirmation, and a genuinely
+   *  unknown inbound — which is the case the UI must not pretend to know. */
+  const DEMO_FLOW_HOPS: any[] = [
+    { occurred_at: sec(0.2), asset: 'ETH', amount: '1.2', amount_num: 1.2,
+      from: ex('Main', KRAKEN, 'kraken'), to: wal(5002, 'MetaMask', true, '0x71C7656EC7ab88b098defB751B7401B5f6d8976F'),
+      legs: [9101], kind: 'outbound', match_source: 'wallet', confidence: 1.0, status: 'pending' },
+
+    { occurred_at: sec(5), asset: 'SOL', amount: '48.2', amount_num: 48.2,
+      from: ex('Binance', BINANCE, 'binance'), to: ex('Main', KRAKEN, 'kraken'),
+      legs: [9102, 9103], kind: 'internal', match_source: 'txid', confidence: 1.0,
+      received: '48.19', received_num: 48.19, network_fee: 0.01,
+      arrived_at: sec(5) + 420, status: 'ok' },
+
+    { occurred_at: sec(12), asset: 'USDT', amount: '3500', amount_num: 3500,
+      from: ex('Main', KRAKEN, 'kraken'), to: unknown('TQn9Y2khEsLJW1ChVWFMSMeRDow5oREqjK'),
+      legs: [9104], kind: 'outbound', match_source: null, confidence: null, status: 'ok',
+      suggestion: { transfer_id: 9105, exchange: 'Binance', kind: 'deposit',
+        amount: '3497.5', asset: 'USDT', occurred_at: sec(12) + 2100, confidence: 0.91,
+        withdrawal_id: 9104, deposit_id: 9105 } },
+
+    { occurred_at: sec(22), asset: 'BTC', amount: '0.028', amount_num: 0.028,
+      from: ex('Coinbase', COINBASE, 'coinbase'), to: wal(5001, 'My Ledger', true, 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'),
+      legs: [9106], kind: 'outbound', match_source: 'wallet', confidence: 1.0, status: 'ok' },
+
+    { occurred_at: sec(31), asset: 'XLM', amount: '4200', amount_num: 4200,
+      from: ex('Main', KRAKEN, 'kraken'), to: wal(5003, 'Rent (not mine)', false, 'GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37'),
+      legs: [9107], kind: 'outbound', match_source: 'wallet', confidence: 1.0, status: 'ok' },
+
+    { occurred_at: sec(41), asset: 'ADA', amount: '15400', amount_num: 15400,
+      from: ex('Binance', BINANCE, 'binance'), to: ex('Coinbase', COINBASE, 'coinbase'),
+      legs: [9108, 9109], kind: 'internal', match_source: 'heuristic', confidence: 0.98,
+      received: '15399', received_num: 15399, network_fee: 1,
+      arrived_at: sec(41) + 900, status: 'ok' },
+
+    { occurred_at: sec(63), asset: 'BTC', amount: '0.15', amount_num: 0.15,
+      from: wal(5001, 'My Ledger', true, 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'),
+      to: ex('Main', KRAKEN, 'kraken'),
+      legs: [9110], kind: 'inbound', match_source: 'wallet', confidence: 1.0, status: 'ok' },
+
+    // The honest case: money arrived and nothing in the data says from whom.
+    { occurred_at: sec(88), asset: 'XLM', amount: '10000', amount_num: 10000,
+      from: unknown(null), to: ex('Main', KRAKEN, 'kraken'),
+      legs: [9111], kind: 'inbound', match_source: null, confidence: null, status: 'ok' },
+  ];
+
+  function transferFlow(asset?: string): any {
+    let hops = DEMO_FLOW_HOPS.map((h) => ({ ...h }));
+    if (asset) hops = hops.filter((h) => h.asset === asset);
+    const counts: Record<string, number> = {
+      internal: 0, outbound: 0, inbound: 0, suggested: 0, unknown_counterparty: 0,
+    };
+    for (const h of hops) {
+      counts[h.kind] = (counts[h.kind] || 0) + 1;
+      if (h.suggestion) counts.suggested++;
+      if (h.from.type === 'unknown' || h.to.type === 'unknown') counts.unknown_counterparty++;
+    }
+    return { hops, counts, total_legs: hops.reduce((n, h) => n + h.legs.length, 0) };
+  }
+
+  function matchSummary(): any {
+    return { linked: 2, suggested: 1, wallet_resolved: 4, unresolved: 1,
+             matched_at: Math.floor(Date.now() / 1000) };
+  }
+
   function transferAssets(): string[] {
     const seen = new Set<string>();
     Object.keys(TRANSFERS).forEach((k) => TRANSFERS[Number(k)].forEach((r) => seen.add(r.asset)));
@@ -1029,6 +1134,63 @@ const DemoData = (() => {
     return { symbol, last, bid: last * 0.999, ask: last * 1.001 };
   }
 
+  // ── Assistant ──────────────────────────────────────────────────────────────
+
+  /**
+   * A canned assistant exchange, so demo mode can actually show the feature
+   * rather than a setup card. It never reaches the real backend — DemoMode
+   * swaps AiData.ask/confirm out entirely — and the orders quoted below are the
+   * same BTC/USD sells the demo order book contains, so the panel agrees with
+   * the Limit Orders page behind it.
+   */
+  function assistantReply(question: string): any {
+    const wantsCancel = /cancel|close|remove|kill/i.test(String(question || ''));
+
+    if (!wantsCancel) {
+      return {
+        answer: "Your largest position is BTC at $41,682 — about 34% of the portfolio, "
+          + "spread across Kraken, Coinbase, Binance and Robinhood.\n\n"
+          + "ETH is second at $22,900 (19%), then SOL at $12,240 (10%). The top three "
+          + "come to roughly 63% of everything you hold.\n\n"
+          + "These are demo figures — nothing here is a real balance.",
+        pending: null,
+        results: [],
+      };
+    }
+
+    return {
+      answer: "You have two resting BTC/USD sell orders — one on Kraken at 68,091.30 "
+        + "for 0.21 BTC, and one on Robinhood at 67,646.67 for 0.11 BTC. The BTC/USDT "
+        + "sell on Binance isn't a USD pair, so I've left it alone.",
+      pending: {
+        token: 'demo-token',
+        actions: [
+          { tool: 'cancel_order', title: 'Cancel BTC/USD',
+            detail: 'Order ODWFYH-5N7Q9-BTC01', danger: false },
+          { tool: 'cancel_order', title: 'Cancel BTC/USD',
+            detail: 'Order b61c72d8-83e9-450b-82d8-fa50b61cc72d', danger: false },
+        ],
+      },
+      results: [],
+    };
+  }
+
+  function assistantConfirmed(): any {
+    return {
+      answer: "Cancelled the Kraken order. The Robinhood one had already filled between "
+        + "my checking and cancelling, so there was nothing left to cancel — it's gone "
+        + "from your resting orders either way.",
+      pending: null,
+      results: [
+        { title: 'Cancel BTC/USD', detail: 'Order ODWFYH-5N7Q9-BTC01',
+          ok: true, declined: false, error: null },
+        { title: 'Cancel BTC/USD', detail: 'Order b61c72d8-83e9-450b-82d8-fa50b61cc72d',
+          ok: false, declined: false,
+          error: 'That order no longer exists. It may have already filled or been canceled.' },
+      ],
+    };
+  }
+
   // ── Profile ────────────────────────────────────────────────────────────────
 
   function profile(): UserModel {
@@ -1050,6 +1212,9 @@ const DemoData = (() => {
       smtp_password_set: false,
       smtp_host: null,
       smtp_port: null,
+      // The demo has no Anthropic key, so the assistant shows its setup card
+      // rather than pretending to answer questions about fabricated holdings.
+      anthropic_key_set: false,
       exchange_connections: connections(),
       has_validated_connection: true,
     };
@@ -1074,6 +1239,10 @@ const DemoData = (() => {
     transfers,
     transferStatus,
     transferAssets,
+    transferFlow,
+    matchSummary,
+    wallets,
+    walletSuggestions,
     cancelOrder,
     limitPairs,
     createOrder,
@@ -1088,6 +1257,8 @@ const DemoData = (() => {
     ohlcv,
     ticker,
     profile,
+    assistantReply,
+    assistantConfirmed,
     wrap,
   };
 })();
@@ -1130,6 +1301,32 @@ class DemoMode {
       [TransferController, 'sync', async () => ({
         complete: true, new_rows: 0, already_running: false, sync: DemoData.transferStatus(),
       })],
+      [TransferController, 'getFlow', async (asset?: string) => DemoData.transferFlow(asset)],
+      [TransferController, 'rematch', async () => DemoData.matchSummary()],
+      // Match decisions and wallet writes are no-ops in demo mode: the fixture is
+      // shared and immutable, and a confirm that appeared to work but vanished on
+      // the next render would read as a bug.
+      [TransferController, 'confirmMatch', async () => undefined],
+      [TransferController, 'rejectMatch', async () => undefined],
+      [TransferController, 'unlockMatch', async () => undefined],
+      [WalletController, 'getWallets', async () => DemoData.wallets()],
+      [WalletController, 'getSuggestions', async () => DemoData.walletSuggestions()],
+      [WalletController, 'createWallet', async () => ({
+        wallet: DemoData.wallets()[0], match: DemoData.matchSummary(),
+      })],
+      [WalletController, 'updateWallet', async () => ({
+        wallet: DemoData.wallets()[0], match: DemoData.matchSummary(),
+      })],
+      [WalletController, 'deleteWallet', async () => undefined],
+      // The template is generated by the backend, which demo mode bypasses, so
+      // there is nothing real to hand out. Refusing with a clear reason beats
+      // saving a zero-byte file that Excel then can't open.
+      [WalletController, 'getTemplate', async () => {
+        throw new Error('The wallet template is not available in demo mode.');
+      }],
+      [WalletController, 'importFile', async () => {
+        throw new Error('Importing wallets is not available in demo mode.');
+      }],
       // Placement is honoured for the same reason as cancelling: it only writes
       // to the fake order book, and a no-op would make the ladder look broken.
       [ExchangeController, 'createOrder', async (id: number, order: any) => DemoData.createOrder(id, order)],
@@ -1152,6 +1349,18 @@ class DemoMode {
       })],
 
       [UserController, 'getProfile', async () => DemoData.profile()],
+
+      // The assistant is demoed rather than disabled: it reports as configured
+      // and answers from the fixture, so the feature can be shown (and captured
+      // for the landing page) without a key. Both ask and confirm are swapped
+      // out, so no request reaches the real backend — that matters most for
+      // confirm, which is what actually executes cancels, orders and new rules.
+      [AiData, 'getStatus', async () => DemoData.wrap({
+        configured: true, model: 'claude-opus-5',
+      })],
+      [AiData, 'ask', async (question: string) =>
+        DemoData.wrap(DemoData.assistantReply(question))],
+      [AiData, 'confirm', async () => DemoData.wrap(DemoData.assistantConfirmed())],
 
       [WatchlistData, 'getWatchlist', async () => DemoData.wrap(DemoData.watchlist())],
       [WatchlistData, 'addToWatchlist', async (_t: string, s: string) => { DemoData.addWatch(s); return DemoData.wrap({}); }],

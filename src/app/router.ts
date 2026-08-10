@@ -38,13 +38,18 @@ class Router {
     const header = document.getElementById('app-header');
     const footer = document.getElementById('app-footer');
     const exchangeSelectorWrapper = document.getElementById('exchange-selector-wrapper');
+    // The assistant launcher rides with the rest of the chrome: it has nothing
+    // to talk about on the login and create-account screens.
+    const aiLauncher = document.getElementById('ai-fab-wrap');
     if (route.showChrome) {
       header?.classList.remove('d-none');
       footer?.classList.remove('d-none');
+      aiLauncher?.classList.remove('d-none');
       this.updateActiveNav(name);
     } else {
       header?.classList.add('d-none');
       footer?.classList.add('d-none');
+      aiLauncher?.classList.add('d-none');
     }
     if (exchangeSelectorWrapper) {
       if (route.showExchangeSelector === false || !route.showChrome) {

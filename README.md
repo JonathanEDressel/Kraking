@@ -53,6 +53,9 @@ Capability flags live in `src/backend/helper/ExchangeRegistry.py` and are enforc
 - Open orders across every connected exchange
 - Resting limit orders in one table — click a row for full detail, or select several and cancel them together
 - Transfer history (deposits and withdrawals) backfilled from each exchange and cached locally
+- A date-ordered roadmap of where funds actually moved — transfers between two connected exchanges are paired automatically by shared transaction hash, or by amount and timing allowing for network fees
+- Label your own wallet addresses so one-sided transfers get attributed too; an unlabelled counterparty is reported as unknown rather than guessed at
+- Bulk-import wallets from a downloadable Excel template (or CSV), with a preview of exactly what will be added before anything is written
 - Watchlist with price data
 - Optional monthly email report
 - Desktop notifications and optional email alerts when a rule executes
@@ -250,6 +253,9 @@ Cyrus/
 │   │   │   ├── ExchangeClient.py      # CCXT operations
 │   │   │   ├── ExchangeRegistry.py    # Capability flags, withdrawal minimums
 │   │   │   ├── TransferSync.py        # Chunked, resumable transfer backfill
+│   │   │   ├── TransferMatch.py       # Pairs the two halves of a movement
+│   │   │   ├── Spreadsheet.py         # Minimal .xlsx + CSV read/write (stdlib only)
+│   │   │   ├── WalletImport.py        # Import template and its parser
 │   │   │   ├── Security.py            # Fernet, bcrypt, JWT
 │   │   │   ├── SetupDatabase.py       # Initial schema
 │   │   │   ├── MigrateDatabase.py     # Idempotent migrations (run on boot)
@@ -388,6 +394,15 @@ All routes require `Authorization: Bearer <token>` except `/api/health` and the 
 - `GET /api/transfers/status` — per-connection backfill progress and any blocking error
 - `POST /api/transfers/sync` — run one bounded slice of sync; repeat until `complete` is true
 - `GET /api/transfers/assets` — distinct assets seen in transfer history
+- `GET /api/transfers/flow` — date-ordered movements with both ends resolved where possible
+- `POST /api/transfers/rematch` — re-derive every pairing from scratch
+- `POST /api/transfers/match/confirm` · `match/reject` · `match/unlock` — override a pairing by hand
+
+### Tracked wallets
+- `GET|POST /api/wallets/` · `PUT|DELETE /api/wallets/<id>`
+- `GET /api/wallets/suggestions` — addresses already in transfer history that aren't labelled yet
+- `GET /api/wallets/template` — the .xlsx import template (`?include_existing=1` exports what's saved)
+- `POST /api/wallets/import` — bulk import from .xlsx or CSV; `preview: true` reports without writing
 
 ### Automation
 - `GET|POST /api/automation/rules`

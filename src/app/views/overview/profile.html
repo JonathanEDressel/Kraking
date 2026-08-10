@@ -1,157 +1,336 @@
-<div class="page-container">
-  <div class="overview-header">
-    <h1 class="page-title">Profile</h1>
-    <p class="page-subtitle">Manage your account settings</p>
+<div class="page-container profile-page">
+
+  <!-- Identity strip. Replaces the old page title: it carries the same
+       information plus the at-a-glance state people came here to check. -->
+  <header class="profile-hero">
+    <div class="profile-avatar" id="profile-initial">·</div>
+    <div class="profile-hero-text">
+      <h1 class="profile-hero-name" id="profile-hero-name">Profile</h1>
+      <p class="profile-hero-meta" id="profile-hero-meta">Loading your account…</p>
+    </div>
+    <div class="profile-hero-chips" id="profile-hero-chips"></div>
+  </header>
+
+  <!-- One alert strip for the whole page. Every section used to carry its own
+       success/error pair, which was ~12 permanently-empty divs and meant the
+       message could land off-screen from whatever you'd just clicked. -->
+  <div class="profile-alert d-none" id="profile-alert">
+    <i class="fa-solid fa-circle-check"></i><span></span>
   </div>
 
-  <div class="profile-sections">
-    <section class="profile-section">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-user me-2"></i>Username</h2>
-      </div>
-      <div class="alert alert-success d-none" data-alert="username-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
-      <div class="alert alert-warning d-none" data-alert="username-error"><span></span></div>
+  <nav class="profile-tabs" id="profile-tabs">
+    <button class="profile-tab active" data-tab="account">
+      <i class="fa-solid fa-user"></i><span>Account</span>
+    </button>
+    <button class="profile-tab" data-tab="exchanges">
+      <i class="fa-solid fa-plug"></i><span>Exchanges</span>
+      <span class="profile-tab-count d-none" id="tab-count-exchanges"></span>
+    </button>
+    <button class="profile-tab" data-tab="assistant">
+      <svg class="profile-tab-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <defs>
+          <linearGradient id="ai-grad-tab" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--accent-cyan-light)"/>
+            <stop offset="100%" stop-color="var(--accent-purple)"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#ai-grad-tab)"
+              d="M12 0c0 6.6 5.4 12 12 12-6.6 0-12 5.4-12 12 0-6.6-5.4-12-12-12C6.6 12 12 6.6 12 0Z"/>
+      </svg>
+      <span>Assistant</span>
+    </button>
+    <button class="profile-tab" data-tab="notifications">
+      <i class="fa-solid fa-bell"></i><span>Notifications</span>
+    </button>
+  </nav>
+
+  <!-- ══ Account ═══════════════════════════════════════════════════════════ -->
+  <section class="profile-pane" data-pane="account">
+    <div class="profile-grid">
       <div class="profile-card">
+        <div class="card-head">
+          <i class="fa-solid fa-id-card"></i>
+          <h2>Username</h2>
+        </div>
         <form id="username-form" onsubmit="return false;">
           <div class="form-group">
-            <label for="profile-username" class="form-label">Username</label>
             <input id="profile-username" type="text" class="form-control" placeholder="Enter new username" />
           </div>
           <button type="button" class="btn btn-primary" id="save-username-btn">
-            Save Username <i class="fa-solid fa-floppy-disk ms-2"></i>
+            Save <i class="fa-solid fa-check"></i>
           </button>
         </form>
       </div>
-    </section>
 
-    <section class="profile-section">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-plug me-2"></i>Exchange Connections</h2>
-      </div>
-      <div class="alert alert-success d-none" data-alert="keys-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
-      <div class="alert alert-warning d-none" data-alert="keys-error"><span></span></div>
-
-      <!-- Existing connections list -->
-      <div id="connections-list" class="profile-card mb-3">
-        <p class="text-muted">Loading connections...</p>
-      </div>
-
-      <!-- Add new connection form -->
       <div class="profile-card">
-        <h3 class="subsection-title">Add New Connection</h3>
-        <form id="add-connection-form" onsubmit="return false;">
+        <div class="card-head">
+          <i class="fa-solid fa-lock"></i>
+          <h2>Password</h2>
+        </div>
+        <form id="password-form" onsubmit="return false;">
           <div class="form-group">
+            <input id="profile-current-password" type="password" class="form-control"
+                   placeholder="Current password" autocomplete="current-password" />
+          </div>
+          <div class="form-group form-row">
+            <input id="profile-new-password" type="password" class="form-control"
+                   placeholder="New password" autocomplete="new-password" />
+            <input id="profile-confirm-password" type="password" class="form-control"
+                   placeholder="Confirm" autocomplete="new-password" />
+          </div>
+          <button type="button" class="btn btn-primary" id="save-password-btn">
+            Update <i class="fa-solid fa-check"></i>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="profile-card">
+      <div class="card-head">
+        <i class="fa-solid fa-sliders"></i>
+        <h2>Appearance &amp; access</h2>
+      </div>
+      <div class="toggle-list">
+        <div class="setting-toggle-row">
+          <div class="setting-toggle-info">
+            <span class="setting-toggle-title">Dark Mode</span>
+            <span class="setting-toggle-desc">Toggle between dark and light theme</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="theme-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-toggle-row">
+          <div class="setting-toggle-info">
+            <span class="setting-toggle-title">Account Active</span>
+            <span class="setting-toggle-desc">Deactivating disables automations and all exchange features</span>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="active-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ Exchanges ═════════════════════════════════════════════════════════ -->
+  <section class="profile-pane d-none" data-pane="exchanges">
+    <div id="connections-list" class="connections-list">
+      <p class="text-muted">Loading connections…</p>
+    </div>
+
+    <div class="profile-card">
+      <div class="card-head">
+        <i class="fa-solid fa-plus"></i>
+        <h2>Add a connection</h2>
+      </div>
+      <form id="add-connection-form" onsubmit="return false;">
+        <div class="form-group form-row">
+          <div class="form-field">
             <label for="new-exchange-name" class="form-label">Exchange
               <span class="help-tooltip-wrapper d-none" id="exchange-guide-wrapper">
                 <a class="help-icon" id="exchange-guide-link" href="#" target="_blank" rel="noopener noreferrer" title="How to get API keys" aria-label="API key guide">?</a>
               </span>
             </label>
             <select id="new-exchange-name" class="form-control">
-              <option value="" disabled selected>Loading exchanges...</option>
+              <option value="" disabled selected>Loading exchanges…</option>
             </select>
           </div>
-          <!-- Shown only for exchanges that issue no secret (Robinhood): you
-               generate the keypair, they only ever see the public half. -->
-          <div class="keygen-panel d-none" id="keygen-panel">
-            <div class="keygen-head">
-              <i class="fa-solid fa-key"></i>
-              <span id="keygen-title">This exchange doesn't give you a secret key</span>
-            </div>
-            <p class="keygen-body">
-              You create a keypair, give <strong id="keygen-exchange-name">the exchange</strong>
-              the <em>public</em> half, and it hands back an API key ID. The
-              <em>private</em> half stays with you and goes in the Private Key field below.
-            </p>
-            <ol class="keygen-steps">
-              <li>Download the generator and run it — it prints both keys.</li>
-              <li>Paste the <strong>public key</strong> into
-                <a href="#" id="keygen-portal-link" target="_blank" rel="noopener noreferrer">your exchange's API settings</a>.</li>
-              <li>Copy the <strong>API key ID</strong> it gives you into the field below, and the
-                <strong>private key</strong> from the generator into Private Key.</li>
-            </ol>
-            <div class="keygen-actions">
-              <button type="button" class="btn btn-secondary btn-sm" id="keygen-download-btn">
-                <i class="fa-solid fa-download me-2"></i>Download key generator
-              </button>
-              <span class="keygen-status" id="keygen-status"></span>
-            </div>
-            <small class="keygen-note">
-              Optional — needs Python 3, nothing else to install, and works offline.
-              Generating your own keys means the private key exists nowhere until you paste it.
-            </small>
-          </div>
-
-          <div class="form-group">
+          <div class="form-field">
             <label for="new-connection-label" class="form-label">Label</label>
-            <input id="new-connection-label" type="text" class="form-control" placeholder="e.g. Main Account, Trading" required />
-            <small class="form-text text-muted">
-              Names this connection. You can connect the same exchange more than once —
-              a trading account and a cold-storage account, say — and the label is how
-              you'll tell them apart.
-            </small>
+            <input id="new-connection-label" type="text" class="form-control" placeholder="e.g. Main, Trading" required />
           </div>
+        </div>
+        <small class="form-text text-muted form-hint">
+          You can connect the same exchange more than once — a trading account and a
+          cold-storage account, say — and the label is how you'll tell them apart.
+        </small>
 
-          <div class="dupe-warning">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span>
-              <strong>Use a different account, not the same one twice.</strong>
-              Connections are added together in your portfolio and in the Balancer's
-              percentages, so the same account connected twice would count double.
-              Re-using API keys is blocked.
-            </span>
+        <!-- Shown only for exchanges that issue no secret (Robinhood): you
+             generate the keypair, they only ever see the public half. -->
+        <div class="keygen-panel d-none" id="keygen-panel">
+          <div class="keygen-head">
+            <i class="fa-solid fa-key"></i>
+            <span id="keygen-title">This exchange doesn't give you a secret key</span>
           </div>
-          <div class="form-group">
+          <p class="keygen-body">
+            You create a keypair, give <strong id="keygen-exchange-name">the exchange</strong>
+            the <em>public</em> half, and it hands back an API key ID. The
+            <em>private</em> half stays with you and goes in the Private Key field below.
+          </p>
+          <ol class="keygen-steps">
+            <li>Download the generator and run it — it prints both keys.</li>
+            <li>Paste the <strong>public key</strong> into
+              <a href="#" id="keygen-portal-link" target="_blank" rel="noopener noreferrer">your exchange's API settings</a>.</li>
+            <li>Copy the <strong>API key ID</strong> it gives you into the field below, and the
+              <strong>private key</strong> from the generator into Private Key.</li>
+          </ol>
+          <div class="keygen-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="keygen-download-btn">
+              <i class="fa-solid fa-download me-2"></i>Download key generator
+            </button>
+            <span class="keygen-status" id="keygen-status"></span>
+          </div>
+          <small class="keygen-note">
+            Optional — needs Python 3, nothing else to install, and works offline.
+            Generating your own keys means the private key exists nowhere until you paste it.
+          </small>
+        </div>
+
+        <div class="dupe-warning">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>
+            <strong>Use a different account, not the same one twice.</strong>
+            Connections are added together in your portfolio and in the Balancer's
+            percentages, so the same account connected twice would count double.
+            Re-using API keys is blocked.
+          </span>
+        </div>
+
+        <div class="form-group form-row">
+          <div class="form-field">
             <label for="new-api-key" class="form-label">API Key</label>
             <input id="new-api-key" type="password" class="form-control" placeholder="Enter API key" />
           </div>
-          <div class="form-group">
+          <div class="form-field">
             <label for="new-private-key" class="form-label">Private Key / Secret</label>
             <input id="new-private-key" type="password" class="form-control" placeholder="Enter private key" />
           </div>
-          <div class="form-group d-none" id="passphrase-group">
-            <label for="new-passphrase" class="form-label">Passphrase</label>
-            <input id="new-passphrase" type="password" class="form-control" placeholder="Enter passphrase (if required)" />
-          </div>
-          <div class="form-group d-none" id="sandbox-group">
-            <div class="form-check mt-1">
-              <input class="form-check-input" type="checkbox" id="new-is-sandbox" />
-              <label class="form-check-label" for="new-is-sandbox">Use Sandbox / Testnet</label>
-            </div>
-            <small class="form-text text-muted">Connect to the sandbox environment for testing with fake funds</small>
-          </div>
-          <small class="form-text text-muted mt-2">
-            <i class="fa-solid fa-lock"></i> Your API keys are encrypted and stored locally on your device
-          </small>
-          <button type="button" class="btn btn-primary mt-2" id="add-connection-btn">
-            Add Connection <i class="fa-solid fa-plus ms-2"></i>
-          </button>
-        </form>
-      </div>
-
-      <!-- Sits at the end of Exchange Connections because this is the exact
-           moment someone discovers they need an exchange account. -->
-      <div class="partner-nudge">
-        <div class="partner-nudge-icon"><i class="fa-solid fa-handshake"></i></div>
-        <div class="partner-nudge-body">
-          <span class="partner-nudge-title">Don't have an exchange account yet?</span>
-          <span class="partner-nudge-text">
-            Sign up for Kraken or Coinbase through our referral links and you may get a
-            bonus &mdash; and it supports Cyrus at no extra cost to you.
-          </span>
         </div>
-        <a href="#" data-route="affiliates" class="partner-nudge-cta">
-          View Partners <i class="fa-solid fa-arrow-right"></i>
-        </a>
-      </div>
-    </section>
+        <div class="form-group d-none" id="passphrase-group">
+          <label for="new-passphrase" class="form-label">Passphrase</label>
+          <input id="new-passphrase" type="password" class="form-control" placeholder="Enter passphrase (if required)" />
+        </div>
+        <div class="form-group d-none" id="sandbox-group">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="new-is-sandbox" />
+            <label class="form-check-label" for="new-is-sandbox">Use Sandbox / Testnet</label>
+          </div>
+          <small class="form-text text-muted">Connect to the sandbox environment for testing with fake funds</small>
+        </div>
 
-    <section class="profile-section">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-bell me-2"></i>Settings</h2>
+        <div class="card-foot">
+          <button type="button" class="btn btn-primary" id="add-connection-btn">
+            Add Connection <i class="fa-solid fa-plus"></i>
+          </button>
+          <small class="form-text text-muted">
+            <i class="fa-solid fa-lock"></i> Encrypted and stored locally on your device
+          </small>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sits at the end because this is the exact moment someone discovers
+         they need an exchange account. -->
+    <div class="partner-nudge">
+      <div class="partner-nudge-icon"><i class="fa-solid fa-handshake"></i></div>
+      <div class="partner-nudge-body">
+        <span class="partner-nudge-title">Don't have an exchange account yet?</span>
+        <span class="partner-nudge-text">
+          Sign up for Kraken or Coinbase through our referral links and you may get a
+          bonus &mdash; and it supports Cyrus at no extra cost to you.
+        </span>
       </div>
-      <div class="alert alert-success d-none" data-alert="notifications-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
-      <div class="alert alert-warning d-none" data-alert="notifications-error"><span></span></div>
-      <div class="profile-card">
+      <a href="#" data-route="affiliates" class="partner-nudge-cta">
+        View Partners <i class="fa-solid fa-arrow-right"></i>
+      </a>
+    </div>
+  </section>
+
+  <!-- ══ Assistant ═════════════════════════════════════════════════════════ -->
+  <section class="profile-pane d-none" data-pane="assistant">
+    <div class="profile-card ai-setup-card">
+      <div class="card-head">
+        <i class="fa-solid fa-key"></i>
+        <h2>Anthropic API key</h2>
+        <span class="ai-status-pill ai-status-off" id="ai-key-status">Checking…</span>
+      </div>
+
+      <p class="card-lead">
+        The assistant answers questions about your portfolio and carries out what you ask —
+        cancelling orders, placing limit orders, creating automation rules. Open it from the
+        button in the top-right corner, or press <kbd class="key-hint">Ctrl</kbd> +
+        <kbd class="key-hint">K</kbd> on any page. It runs on Claude using
+        <strong>your own</strong> Anthropic API key, so it's billed to your account and
+        your portfolio never passes through a Cyrus server.
+      </p>
+
+      <div class="form-group">
+        <label for="ai-key-input" class="form-label">API Key</label>
+        <input id="ai-key-input" type="password" class="form-control"
+               placeholder="sk-ant-…" autocomplete="off" spellcheck="false" />
+        <small class="form-text text-muted">
+          Create one at
+          <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer"
+             class="inline-link">console.anthropic.com <i class="fa-solid fa-arrow-up-right-from-square"></i></a>.
+          Cyrus verifies the key with Anthropic before saving it.
+        </small>
+      </div>
+
+      <div class="card-foot">
+        <button type="button" class="btn btn-primary" id="ai-key-save">
+          Verify &amp; Save <i class="fa-solid fa-check"></i>
+        </button>
+        <button type="button" class="btn btn-danger d-none" id="ai-key-remove">
+          Remove key <i class="fa-solid fa-trash"></i>
+        </button>
+        <small class="form-text text-muted">
+          <i class="fa-solid fa-lock"></i> Encrypted with the same key as your exchange credentials
+        </small>
+      </div>
+    </div>
+
+    <div class="profile-card ai-facts">
+      <div class="card-head">
+        <i class="fa-solid fa-circle-info"></i>
+        <h2>What to expect</h2>
+      </div>
+      <ul class="fact-list">
+        <li>
+          <strong>Nothing runs until you confirm it.</strong> Reading your portfolio is
+          automatic. Anything that changes something — a cancel, an order, a new rule —
+          stops and shows you exactly what it's about to do, built from the real values it
+          will send, not from its own description of them.
+        </li>
+        <li>
+          <strong>It can only do what you can.</strong> Actions go through the same code
+          and the same checks as the buttons elsewhere in Cyrus, as you. It can't reach
+          another account, and it can't place a market order or withdraw to an address you
+          haven't whitelisted, because Cyrus itself can't.
+        </li>
+        <li>
+          <strong>Automation rules are the ones to read twice.</strong> A rule fires later,
+          on its own, possibly while you're asleep — and a withdraw rule moves funds off the
+          exchange. Check the trigger and the threshold on the confirmation card before approving.
+        </li>
+        <li>
+          <strong>Not financial advice.</strong> It carries out what you ask and describes
+          what you hold; it won't tell you what to buy or sell. Like any language model it
+          can be wrong — check anything that matters.
+        </li>
+        <li>
+          <strong>Pennies per question.</strong> A portfolio snapshot is small; typical
+          questions cost a fraction of a cent against your Anthropic credit.
+        </li>
+        <li>
+          <strong>Conversations stay on this device.</strong> History is kept in the app's
+          local storage, per account, never sent anywhere and never written to your Cyrus
+          database. Clear it any time from the history panel.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ══ Notifications ═════════════════════════════════════════════════════ -->
+  <section class="profile-pane d-none" data-pane="notifications">
+    <div class="profile-card">
+      <div class="card-head">
+        <i class="fa-solid fa-desktop"></i>
+        <h2>In-app</h2>
+      </div>
+      <div class="toggle-list">
         <div class="setting-toggle-row">
           <div class="setting-toggle-info">
             <span class="setting-toggle-title">Desktop Notifications</span>
@@ -162,141 +341,92 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div class="setting-toggle-row mt-4">
+        <div class="setting-toggle-row">
           <div class="setting-toggle-info">
             <span class="setting-toggle-title">Donation Modal</span>
-            <span class="setting-toggle-desc">Show donation modal</span>
+            <span class="setting-toggle-desc">Show the support-Cyrus button in the corner</span>
           </div>
           <label class="toggle-switch">
             <input type="checkbox" id="donation-modal-toggle" checked>
             <span class="toggle-slider"></span>
           </label>
         </div>
-        <div class="setting-toggle-row mt-4">
-          <div class="setting-toggle-info">
-            <span class="setting-toggle-title">Dark Mode</span>
-            <span class="setting-toggle-desc">Toggle between dark and light theme</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="theme-toggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
-        <div class="setting-toggle-row mt-4">
-          <div class="setting-toggle-info">
-            <span class="setting-toggle-title">Account Active</span>
-            <span class="setting-toggle-desc">Deactivating your account will disable automations and exchange features</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="active-toggle" checked>
-            <span class="toggle-slider"></span>
-          </label>
-        </div>
       </div>
-    </section>
+    </div>
 
-    <section class="profile-section">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-envelope me-2"></i>Email Notifications</h2>
+    <div class="profile-card">
+      <div class="card-head">
+        <i class="fa-solid fa-envelope"></i>
+        <h2>Email</h2>
       </div>
-      <div class="alert alert-success d-none" data-alert="email-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
-      <div class="alert alert-warning d-none" data-alert="email-error"><span></span></div>
-      <div class="profile-card">
-        <div class="setting-toggle-row">
-          <div class="setting-toggle-info">
-            <span class="setting-toggle-title">Email Me on Execution</span>
-            <span class="setting-toggle-desc">Send an email whenever an automation rule executes an order</span>
-          </div>
-          <label class="toggle-switch">
-            <input type="checkbox" id="email-notifications-toggle">
-            <span class="toggle-slider"></span>
-          </label>
+      <div class="setting-toggle-row">
+        <div class="setting-toggle-info">
+          <span class="setting-toggle-title">Email Me on Execution</span>
+          <span class="setting-toggle-desc">Send an email whenever an automation rule executes an order</span>
         </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="email-notifications-toggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
 
-        <form id="email-settings-form" onsubmit="return false;" class="mt-4">
-          <div class="form-group">
+      <form id="email-settings-form" onsubmit="return false;" class="email-form">
+        <div class="form-group form-row">
+          <div class="form-field">
             <label for="email-address" class="form-label">Email Address</label>
             <input id="email-address" type="email" class="form-control" placeholder="you@gmail.com" autocomplete="email" />
           </div>
-          <div class="form-group">
+          <div class="form-field">
             <label for="email-app-password" class="form-label">App Password</label>
             <input id="email-app-password" type="password" class="form-control" placeholder="Enter app password" autocomplete="new-password" />
-            <small class="form-text text-muted">
-              Use an app password from your email provider (e.g. Gmail / Outlook), not your normal login password.
-              Leave blank to keep the one already saved.
-              <br>
-              <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer"
-                 class="email-connect-link" style="color: var(--accent-cyan); display:inline-block; margin-top:6px;">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> How to connect your email account
-              </a>
-            </small>
           </div>
-          <div class="form-group">
-            <label class="form-label">SMTP Server <span class="text-muted small">(optional — auto-detected for common providers)</span></label>
-            <div style="display:flex; gap:8px;">
-              <input id="email-smtp-host" type="text" class="form-control" placeholder="smtp.gmail.com" autocomplete="off" />
-              <input id="email-smtp-port" type="number" class="form-control" placeholder="587" style="max-width:120px;" />
-            </div>
-          </div>
-          <small class="form-text text-muted">
-            <i class="fa-solid fa-lock"></i> Your app password is encrypted and stored locally on your device.
-            Emails are sent from your own account while Cyrus is running.
-          </small>
-          <div style="display:flex; gap:8px;" class="mt-2">
-            <button type="button" class="btn btn-primary" id="save-email-btn">
-              Save <i class="fa-solid fa-floppy-disk ms-2"></i>
-            </button>
-            <button type="button" class="btn btn-secondary" id="test-email-btn">
-              Send Test Email <i class="fa-solid fa-paper-plane ms-2"></i>
-            </button>
-          </div>
-        </form>
-      </div>
-    </section>
+        </div>
+        <small class="form-text text-muted form-hint">
+          Use an app password from your email provider (Gmail, Outlook…), not your normal
+          login password. Leave blank to keep the one already saved.
+          <a href="https://support.google.com/accounts/answer/185833" target="_blank" rel="noopener noreferrer" class="inline-link">
+            How to connect your email account <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </small>
 
-    <section class="profile-section">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-file-invoice me-2"></i>Monthly Report</h2>
+        <div class="form-group">
+          <label class="form-label">SMTP Server <span class="label-optional">optional — auto-detected for common providers</span></label>
+          <div class="form-row form-row-smtp">
+            <input id="email-smtp-host" type="text" class="form-control" placeholder="smtp.gmail.com" autocomplete="off" />
+            <input id="email-smtp-port" type="number" class="form-control" placeholder="587" />
+          </div>
+        </div>
+
+        <div class="card-foot">
+          <button type="button" class="btn btn-primary" id="save-email-btn">
+            Save <i class="fa-solid fa-check"></i>
+          </button>
+          <button type="button" class="btn btn-secondary" id="test-email-btn">
+            Send Test <i class="fa-solid fa-paper-plane"></i>
+          </button>
+          <small class="form-text text-muted">
+            <i class="fa-solid fa-lock"></i> Sent from your own account while Cyrus is running
+          </small>
+        </div>
+      </form>
+    </div>
+
+    <div class="profile-card">
+      <div class="card-head">
+        <i class="fa-solid fa-file-invoice"></i>
+        <h2>Monthly report</h2>
       </div>
-      <div class="alert alert-success d-none" data-alert="report-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
-      <div class="alert alert-warning d-none" data-alert="report-error"><span></span></div>
-      <div class="profile-card">
-        <p class="text-muted" style="margin-top:0;">
-          At the end of each month, Cyrus emails you a portfolio report — your allocation chart, holdings
-          and percentages, automation &amp; open-order flow charts, and that month's execution log. This uses
-          the email account configured above, and is delivered the next time Cyrus runs after month-end.
-        </p>
+      <p class="card-lead">
+        At month end Cyrus emails you a portfolio report — allocation, holdings and
+        percentages, that month's execution log, and your automation and open-order flow.
+        It uses the email account above and goes out the next time Cyrus runs after month-end.
+      </p>
+      <div class="card-foot">
         <button type="button" class="btn btn-secondary" id="test-report-btn">
-          Send Test Report <i class="fa-solid fa-paper-plane ms-2"></i>
+          Send Test Report <i class="fa-solid fa-paper-plane"></i>
         </button>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="profile-section">
-      <div class="section-header">
-        <h2 class="section-title"><i class="fa-solid fa-lock me-2"></i>Change Password</h2>
-      </div>
-      <div class="alert alert-success d-none" data-alert="password-success"><i class="fa-solid fa-circle-check me-2"></i><span></span></div>
-      <div class="alert alert-warning d-none" data-alert="password-error"><span></span></div>
-      <div class="profile-card mb-4">
-        <form id="password-form" onsubmit="return false;">
-          <div class="form-group">
-            <label for="profile-current-password" class="form-label">Current Password</label>
-            <input id="profile-current-password" type="password" class="form-control" placeholder="Enter current password" />
-          </div>
-          <div class="form-group">
-            <label for="profile-new-password" class="form-label">New Password</label>
-            <input id="profile-new-password" type="password" class="form-control" placeholder="Enter new password" />
-          </div>
-          <div class="form-group">
-            <label for="profile-confirm-password" class="form-label">Confirm New Password</label>
-            <input id="profile-confirm-password" type="password" class="form-control" placeholder="Confirm new password" />
-          </div>
-          <button type="button" class="btn btn-primary" id="save-password-btn">
-            Update Password <i class="fa-solid fa-floppy-disk ms-2"></i>
-          </button>
-        </form>
-      </div>
-    </section>
-  </div>
 </div>

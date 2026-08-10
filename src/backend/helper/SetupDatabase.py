@@ -212,6 +212,12 @@ def setup_database():
                 is_internal INTEGER,
                 internal_match_id INTEGER,
                 match_source TEXT,
+                match_confidence REAL,
+                counterparty_wallet_id INTEGER,
+                -- Set when the user confirms or clears a match by hand. The
+                -- matcher skips locked rows entirely, so a re-run can never
+                -- overwrite a human decision with its own guess.
+                match_locked INTEGER NOT NULL DEFAULT 0,
                 raw_payload TEXT,
                 first_seen_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL,
@@ -243,6 +249,55 @@ def setup_database():
             )
         ''')
 
+        # Pairs the user has explicitly said are NOT the same movement.
+        # Without this a rejection would be undone by the next match run, which
+        # would re-score the same two legs and suggest them all over again.
+        # Rejection is pairwise on purpose: saying "this withdrawal isn't that
+        # deposit" must not stop it matching a different deposit.
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS transfer_match_rejections (
+                user_id INTEGER NOT NULL,
+                withdrawal_id INTEGER NOT NULL,
+                deposit_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (user_id, withdrawal_id, deposit_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Crypto addresses the user tells us about, so a transfer with only one
+        # leg in our data can still be attributed. An exchange reports the
+        # counterparty address but never who owns it — this table is the only
+        # thing that can turn "withdrew to bc1q…" into "moved to my Ledger".
+        #
+        # address_norm is the matching key (lowercased, 0x stripped); address
+        # keeps the form the user typed, because checksummed EVM addresses and
+        # case-sensitive chains both matter for display.
+        #
+        # is_own separates "my other wallet" from "someone else's address I want
+        # to recognise" — only the former makes a transfer internal.
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS user_wallets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                label TEXT NOT NULL,
+                address TEXT NOT NULL,
+                address_norm TEXT NOT NULL,
+                chain TEXT,
+                asset TEXT,
+                -- Memo / destination tag, for chains where one address serves
+                -- many accounts (XLM memo, XRP destination tag). Recorded for
+                -- the user's own reference; matching is on the address, since
+                -- that is all an exchange reports for the counterparty.
+                tag TEXT,
+                is_own INTEGER NOT NULL DEFAULT 1,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, address_norm),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        ''')
+
         conn.execute('CREATE INDEX IF NOT EXISTS idx_username ON users(username)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_user_active ON automation_rules(user_id, is_active)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_user_log ON automation_log(user_id, created_at)')
@@ -254,6 +309,10 @@ def setup_database():
         conn.execute('CREATE INDEX IF NOT EXISTS idx_transfer_conn_kind_time ON transfer_history(exchange_connection_id, kind, occurred_at)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_transfer_user_asset ON transfer_history(user_id, asset)')
         conn.execute('CREATE INDEX IF NOT EXISTS idx_transfer_unsettled ON transfer_history(exchange_connection_id, kind, status, occurred_at)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_transfer_txid ON transfer_history(txid)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_transfer_match ON transfer_history(user_id, internal_match_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_user_wallets_user ON user_wallets(user_id)')
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_user_wallets_norm ON user_wallets(user_id, address_norm)')
 
         for migration in [
             'ALTER TABLE automation_rules ADD COLUMN trigger_exchange_id INTEGER REFERENCES exchange_connections(id) ON DELETE SET NULL',

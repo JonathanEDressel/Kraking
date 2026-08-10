@@ -224,10 +224,23 @@ def run_sync():
             if not result.get('complete', True):
                 complete = False
 
+        # New rows can complete a pairing whose other half was already stored,
+        # so re-match whenever anything landed. Best-effort: the transfers are
+        # saved either way, and matching is derived data that the next run
+        # rebuilds from scratch.
+        match = None
+        if new_rows:
+            try:
+                from helper.TransferMatch import match_user_transfers
+                match = match_user_transfers(user_id)
+            except Exception as e:
+                print(f"[TRANSFERS] match after sync failed: {e}")
+
         return success_response(data={
             'complete': complete,
             'new_rows': new_rows,
             'already_running': already_running,
+            'match': match,
             'sync': _build_status(user_id),
         })
     except Exception as e:
@@ -240,5 +253,251 @@ def run_sync():
 def transfer_assets():
     try:
         return success_response(data=TransferDbContext.get_distinct_assets(request.user_id))
+    except Exception as e:
+        return handle_error(e)
+
+
+# ---------------------------------------------------------------------------
+# Movement timeline
+# ---------------------------------------------------------------------------
+
+def _endpoint(kind: str, leg: dict, side: str) -> dict:
+    """Describe one end of a hop.
+
+    ``side`` is 'exchange' for the venue this leg belongs to, or 'counterparty'
+    for whatever sits at the other end. An unresolved counterparty is reported
+    as ``unknown`` with the raw address, never guessed at — an unlabelled
+    address genuinely could be anyone, including the user.
+    """
+    if side == 'exchange':
+        return {
+            'type': 'exchange',
+            'label': leg.get('connection_label') or leg['exchange_name'],
+            'exchange': leg['exchange_name'],
+            'connection_id': leg['exchange_connection_id'],
+        }
+    if leg.get('wallet_label'):
+        return {
+            'type': 'wallet',
+            'label': leg['wallet_label'],
+            'wallet_id': leg['counterparty_wallet_id'],
+            'is_own': bool(leg.get('wallet_is_own')),
+            'address': leg.get('address'),
+        }
+    return {
+        'type': 'unknown',
+        'label': 'Unknown wallet' if leg.get('address') else 'Unknown source',
+        'address': leg.get('address'),
+    }
+
+
+def _hop(occurred_at: int, asset: str, amount: str, amount_num, source: dict,
+         destination: dict, legs: list[int], **extra) -> dict:
+    hop = {
+        'occurred_at': occurred_at,
+        'asset': asset,
+        'amount': amount,
+        'amount_num': amount_num,
+        'from': source,
+        'to': destination,
+        'legs': legs,
+    }
+    hop.update(extra)
+    return hop
+
+
+def _build_flow(legs: list[dict]) -> list[dict]:
+    """Collapse legs into date-ordered movements.
+
+    A matched pair is ONE movement with two ends, not two events — that
+    collapsing is the whole point of the view. Everything else is a single-ended
+    movement whose far end is either a labelled wallet or honestly unknown.
+    """
+    by_id = {l['id']: l for l in legs}
+    consumed: set[int] = set()
+    hops: list[dict] = []
+
+    for leg in legs:
+        if leg['id'] in consumed:
+            continue
+
+        partner_id = leg['internal_match_id']
+        partner = by_id.get(partner_id) if partner_id else None
+        confirmed = partner is not None and leg['match_source'] in (
+            'txid', 'heuristic', 'user', 'wallet')
+
+        # A confirmed pair between two connections: one hop, venue to venue.
+        if partner is not None and confirmed and leg['match_source'] != 'wallet':
+            consumed.add(leg['id'])
+            consumed.add(partner['id'])
+            out_leg = leg if leg['kind'] == 'withdrawal' else partner
+            in_leg = partner if leg['kind'] == 'withdrawal' else leg
+            fee = None
+            try:
+                fee = round(float(out_leg['amount_num']) - float(in_leg['amount_num']), 12)
+            except (TypeError, ValueError):
+                fee = None
+            hops.append(_hop(
+                out_leg['occurred_at'], out_leg['asset'], out_leg['amount'],
+                out_leg['amount_num'],
+                _endpoint('withdrawal', out_leg, 'exchange'),
+                _endpoint('deposit', in_leg, 'exchange'),
+                [out_leg['id'], in_leg['id']],
+                kind='internal',
+                received=in_leg['amount'],
+                received_num=in_leg['amount_num'],
+                network_fee=fee,
+                arrived_at=in_leg['occurred_at'],
+                match_source=leg['match_source'],
+                confidence=leg['match_confidence'],
+                locked=bool(leg['match_locked']),
+                status=in_leg['status'] or out_leg['status'],
+            ))
+            continue
+
+        # An unresolved suggestion: shown as a single-ended movement, with the
+        # proposed counterpart attached so the UI can offer confirm/reject. It is
+        # deliberately NOT drawn as a completed hop — that would present a guess
+        # as a fact.
+        # Attached to the WITHDRAWAL leg only. Both legs of a suggested pair
+        # point at each other, so offering it from each side would ask the same
+        # question twice and let one answer leave the other stranded. The
+        # outbound side is the natural place to ask "did this end up there?".
+        suggestion = None
+        if (partner is not None and leg['match_source'] == 'suggested'
+                and leg['kind'] == 'withdrawal'):
+            other = partner
+            suggestion = {
+                'transfer_id': other['id'],
+                'exchange': other.get('connection_label') or other['exchange_name'],
+                'kind': other['kind'],
+                'amount': other['amount'],
+                'asset': other['asset'],
+                'occurred_at': other['occurred_at'],
+                'confidence': leg['match_confidence'],
+                'withdrawal_id': leg['id'] if leg['kind'] == 'withdrawal' else other['id'],
+                'deposit_id': other['id'] if leg['kind'] == 'withdrawal' else leg['id'],
+            }
+
+        consumed.add(leg['id'])
+        venue = _endpoint(leg['kind'], leg, 'exchange')
+        counterparty = _endpoint(leg['kind'], leg, 'counterparty')
+        outbound = leg['kind'] == 'withdrawal'
+        hops.append(_hop(
+            leg['occurred_at'], leg['asset'], leg['amount'], leg['amount_num'],
+            venue if outbound else counterparty,
+            counterparty if outbound else venue,
+            [leg['id']],
+            kind='outbound' if outbound else 'inbound',
+            match_source=leg['match_source'],
+            confidence=leg['match_confidence'],
+            locked=bool(leg['match_locked']),
+            is_internal=leg['is_internal'],
+            fee_amount=leg['fee_amount'],
+            fee_currency=leg['fee_currency'],
+            status=leg['status'],
+            suggestion=suggestion,
+        ))
+
+    hops.sort(key=lambda h: (-(h['occurred_at'] or 0), h['asset']))
+    return hops
+
+
+@transfer_bp.route('/flow', methods=['GET'])
+@token_required
+@active_required
+def transfer_flow():
+    """Date-ordered movements: what left where, and where it landed."""
+    try:
+        asset = (request.args.get('asset') or '').strip().upper() or None
+        since_ts = _optional_int(request.args.get('from'))
+
+        legs = TransferDbContext.list_for_flow(request.user_id, since_ts, asset)
+        hops = _build_flow(legs)
+
+        counts = {'internal': 0, 'outbound': 0, 'inbound': 0,
+                  'suggested': 0, 'unknown_counterparty': 0}
+        for hop in hops:
+            counts[hop['kind']] = counts.get(hop['kind'], 0) + 1
+            if hop.get('suggestion'):
+                counts['suggested'] += 1
+            if hop['from']['type'] == 'unknown' or hop['to']['type'] == 'unknown':
+                counts['unknown_counterparty'] += 1
+
+        return success_response(data={
+            'hops': hops,
+            'counts': counts,
+            'total_legs': len(legs),
+        })
+    except Exception as e:
+        return handle_error(e)
+
+
+@transfer_bp.route('/rematch', methods=['POST'])
+@token_required
+@active_required
+def rematch():
+    try:
+        from helper.TransferMatch import match_user_transfers
+        return success_response(data=match_user_transfers(request.user_id),
+                                message='Transfers re-matched')
+    except Exception as e:
+        return handle_error(e)
+
+
+def _pair_from_body(body: dict) -> tuple[int, int] | None:
+    try:
+        return int(body.get('withdrawal_id')), int(body.get('deposit_id'))
+    except (TypeError, ValueError):
+        return None
+
+
+@transfer_bp.route('/match/confirm', methods=['POST'])
+@token_required
+@active_required
+def confirm_match_route():
+    try:
+        from helper.TransferMatch import confirm_match
+        pair = _pair_from_body(request.get_json(silent=True) or {})
+        if not pair:
+            return bad_request('withdrawal_id and deposit_id are required')
+        if not confirm_match(request.user_id, *pair):
+            return bad_request(
+                'Those two transfers cannot be paired — a match needs one '
+                'withdrawal and one deposit, both belonging to you.')
+        return success_response(message='Match confirmed')
+    except Exception as e:
+        return handle_error(e)
+
+
+@transfer_bp.route('/match/reject', methods=['POST'])
+@token_required
+@active_required
+def reject_match_route():
+    try:
+        from helper.TransferMatch import reject_match
+        pair = _pair_from_body(request.get_json(silent=True) or {})
+        if not pair:
+            return bad_request('withdrawal_id and deposit_id are required')
+        reject_match(request.user_id, *pair)
+        return success_response(message='Match rejected')
+    except Exception as e:
+        return handle_error(e)
+
+
+@transfer_bp.route('/match/unlock', methods=['POST'])
+@token_required
+@active_required
+def unlock_match_route():
+    """Hand a manually-decided transfer back to automatic matching."""
+    try:
+        from helper.TransferMatch import unlock_match
+        body = request.get_json(silent=True) or {}
+        transfer_id = _optional_int(body.get('transfer_id'))
+        if transfer_id is None:
+            return bad_request('transfer_id is required')
+        if not unlock_match(request.user_id, transfer_id):
+            return not_found('Transfer not found')
+        return success_response(message='Match unlocked')
     except Exception as e:
         return handle_error(e)

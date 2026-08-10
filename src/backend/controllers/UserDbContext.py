@@ -107,6 +107,15 @@ class UserDbContext:
         return True
 
     @staticmethod
+    def update_anthropic_key(user_id: int, encrypted: Optional[str]) -> bool:
+        """Store (or clear, with ``None``) the user's Fernet-encrypted API key."""
+        execute_non_query(
+            'UPDATE users SET anthropic_key_encrypted = ? WHERE id = ?',
+            (encrypted, user_id)
+        )
+        return True
+
+    @staticmethod
     def get_email_settings(user_id: int) -> Optional[dict]:
         """Return the raw email-notification columns for the worker to use.
 

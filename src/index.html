@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="app/styles/ruleflow.css">
   <link rel="stylesheet" href="app/styles/portfoliochart.css">
   <link rel="stylesheet" href="app/styles/portfoliohistory.css">
+  <!-- Not lazy-loaded per route like the other page styles: the launcher lives
+       in the sidebar and the drawer opens over any page. -->
+  <link rel="stylesheet" href="app/styles/overview/assistant.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="../node_modules/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
   <script src="../node_modules/html-to-image/dist/html-to-image.js"></script>
@@ -99,6 +102,27 @@
       </div>
     </div>
   </footer>
+
+  <!-- Assistant launcher: a floating button in the top-right corner, mirroring
+       the donation widget in the bottom-right. Shown and hidden by the router
+       alongside the rest of the app chrome, so it never appears on the login
+       screens. Handled by a delegated listener in services/aiassistant.ts. -->
+  <div class="ai-fab-wrap d-none" id="ai-fab-wrap">
+    <button class="ai-fab" data-ai-open aria-label="Open the assistant">
+      <svg class="ai-fab-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <defs>
+          <linearGradient id="ai-grad-launch" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff"/>
+            <stop offset="100%" stop-color="rgba(255,255,255,0.72)"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#ai-grad-launch)"
+              d="M12 0c0 6.6 5.4 12 12 12-6.6 0-12 5.4-12 12 0-6.6-5.4-12-12-12C6.6 12 12 6.6 12 0Z"/>
+        <path fill="url(#ai-grad-launch)" opacity="0.65"
+              d="M19.5 15.5c0 2.5 2 4.5 4.5 4.5-2.5 0-4.5 2-4.5 4.5 0-2.5-2-4.5-4.5-4.5 2.5 0 4.5-2 4.5-4.5Z"/>
+      </svg>
+    </button>
+  </div>
 
   <div class="donation-widget" id="donation-widget">
     <button class="donation-toggle" id="donation-toggle">
@@ -305,6 +329,7 @@
   <script src="../dist/app/services/marketdata.js"></script>
   <script src="../dist/app/services/watchlistdata.js"></script>
   <script src="../dist/app/services/reportdata.js"></script>
+  <script src="../dist/app/services/aidata.js"></script>
   <script src="../dist/app/services/controllers/authcontroller.js"></script>
   <script src="../dist/app/services/controllers/usercontroller.js"></script>
   <script src="../dist/app/services/controllers/exchangecontroller.js"></script>
@@ -323,6 +348,10 @@
   <script src="../dist/app/services/portfoliohistory.js"></script>
   <script src="../dist/app/services/monthlyreport.js"></script>
   <script src="../dist/app/router.js"></script>
+  <!-- After router.js: its click handler calls router.navigate() to send an
+       unconfigured user to Profile. -->
+  <script src="../dist/app/services/aihistory.js"></script>
+  <script src="../dist/app/services/aiassistant.js"></script>
   <script src="../dist/app/services/demomode.js"></script>
   <script src="../dist/app/app.js"></script>
 </body>

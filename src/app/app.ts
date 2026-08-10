@@ -145,7 +145,9 @@ function applyTheme(theme: string): void {
   router.register('profile', {
     view: 'app/views/overview/profile.html',
     viewModel: '../dist/app/viewmodels/overview/profile.js',
-    style: 'app/styles/overview/profile.css',
+    // home.css supplies .page-container, .status-badge and the base button
+    // styles the profile cards build on; profile.css loads last so it wins.
+    style: ['app/styles/overview/home.css', 'app/styles/overview/profile.css'],
     showChrome: true,
     showExchangeSelector: false,
     title: 'Profile',

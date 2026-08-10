@@ -220,6 +220,14 @@ def run_column_migrations():
             conn.commit()
             print("[MIGRATION] Added smtp_port column to users")
 
+        # Anthropic API key for the portfolio assistant. Stored encrypted
+        # (Fernet) like the SMTP app password — never in plaintext, never
+        # serialized back to the client.
+        if not _has_column(conn, 'users', 'anthropic_key_encrypted'):
+            conn.execute('ALTER TABLE users ADD COLUMN anthropic_key_encrypted TEXT')
+            conn.commit()
+            print("[MIGRATION] Added anthropic_key_encrypted column to users")
+
         # Portfolio balancer (trigger_type = 'allocation_threshold'). The cap and
         # the rebalance-down-to target are stored as separate percentages: acting
         # exactly down to the cap would re-fire on the next tick, so a rule needs
@@ -277,6 +285,27 @@ def run_column_migrations():
             conn.execute('ALTER TABLE automation_rules ADD COLUMN dry_run INTEGER DEFAULT 0')
             conn.commit()
             print("[MIGRATION] Added dry_run column to automation_rules")
+
+        # transfer_history shipped in v1.2.4 without the match columns, so
+        # existing installs need them added rather than just declared in
+        # SetupDatabase. Guarded on the table existing at all, because
+        # run_column_migrations also runs on databases older than the feature.
+        if _has_table(conn, 'user_wallets') and not _has_column(conn, 'user_wallets', 'tag'):
+            conn.execute('ALTER TABLE user_wallets ADD COLUMN tag TEXT')
+            conn.commit()
+            print("[MIGRATION] Added tag column to user_wallets")
+
+        if _has_table(conn, 'transfer_history'):
+            for column, ddl in (
+                ('match_confidence', 'REAL'),
+                ('counterparty_wallet_id', 'INTEGER'),
+                ('match_locked', 'INTEGER NOT NULL DEFAULT 0'),
+            ):
+                if not _has_column(conn, 'transfer_history', column):
+                    conn.execute(
+                        f'ALTER TABLE transfer_history ADD COLUMN {column} {ddl}')
+                    conn.commit()
+                    print(f"[MIGRATION] Added {column} column to transfer_history")
     except Exception as e:
         conn.rollback()
         print(f"[MIGRATION ERROR] Column migration failed: {e}")
@@ -288,3 +317,17 @@ def _has_column(conn, table: str, column: str) -> bool:
     """Check if a column exists on a table (SQLite PRAGMA)."""
     rows = conn.execute(f'PRAGMA table_info({table})').fetchall()
     return any(r['name'] == column for r in rows)
+
+
+def _has_table(conn, table: str) -> bool:
+    """Check if a table exists.
+
+    Needed because ``run_column_migrations`` runs against databases created
+    before a table existed, and ``PRAGMA table_info`` on a missing table returns
+    an empty list rather than raising — which would read as "column absent" and
+    send an ALTER at a table that isn't there.
+    """
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
+    ).fetchone()
+    return row is not None

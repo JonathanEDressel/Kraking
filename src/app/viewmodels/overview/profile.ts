@@ -5,20 +5,47 @@ class ProfileController {
   private supportedExchanges: any[] = [];
   /** Exchange the key-generator panel is currently offering a script for. */
   private keygenExchangeId: string | null = null;
+  private aiConfigured = false;
+  private alertTimer: number | undefined;
 
   constructor() {
     this.init();
   }
 
   private init(): void {
+    this.setupTabs();
     this.loadProfile();
     this.loadConnections();
     this.loadSupportedExchanges();
+    this.loadAiStatus();
     this.attachEventListeners();
+  }
+
+  /** Show one pane at a time. Deep-linkable via ?tab= on the route params, so
+   *  "set up the assistant" links can land on the right pane. */
+  private setupTabs(): void {
+    const tabs = Array.from(document.querySelectorAll<HTMLElement>('.profile-tab'));
+    const panes = Array.from(document.querySelectorAll<HTMLElement>('.profile-pane'));
+
+    const show = (name: string) => {
+      tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === name));
+      panes.forEach(p => p.classList.toggle('d-none', p.getAttribute('data-pane') !== name));
+    };
+
+    tabs.forEach(tab => tab.addEventListener('click', () => {
+      show(tab.getAttribute('data-tab') || 'account');
+    }));
+
+    const requested = (window as any).__routeParams?.tab;
+    if (requested && tabs.some(t => t.getAttribute('data-tab') === requested)) {
+      show(requested);
+    }
   }
 
   private attachEventListeners(): void {
     document.getElementById('save-username-btn')?.addEventListener('click', () => this.saveUsername());
+    document.getElementById('ai-key-save')?.addEventListener('click', () => this.saveAiKey());
+    document.getElementById('ai-key-remove')?.addEventListener('click', () => this.removeAiKey());
     document.getElementById('save-password-btn')?.addEventListener('click', () => this.savePassword());
     document.getElementById('add-connection-btn')?.addEventListener('click', () => this.addConnection());
     document.getElementById('notifications-toggle')?.addEventListener('change', (e) => {
@@ -171,8 +198,130 @@ class ProfileController {
       if (emailPort) emailPort.value = user.smtp_port != null ? String(user.smtp_port) : '';
       const emailPw = document.getElementById('email-app-password') as HTMLInputElement;
       if (emailPw) emailPw.placeholder = user.smtp_password_set ? 'Saved — leave blank to keep' : 'Enter app password';
+
+      this.renderHero(user);
     } catch (error: any) {
       this.showError('username', error.message || 'Failed to load profile');
+    }
+  }
+
+  /** The identity strip: who you are, plus the two bits of state people open
+   *  this page to check (are my keys working, is email on). */
+  private renderHero(user: UserModel): void {
+    const initial = document.getElementById('profile-initial');
+    if (initial) initial.textContent = (user.username || '?').charAt(0);
+
+    const name = document.getElementById('profile-hero-name');
+    if (name) name.textContent = user.username || 'Profile';
+
+    const meta = document.getElementById('profile-hero-meta');
+    if (meta) {
+      const since = user.created_at
+        ? new Date(user.created_at.endsWith('Z') ? user.created_at : user.created_at + 'Z')
+            .toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+        : null;
+      meta.textContent = since ? `Member since ${since}` : 'Manage your account settings';
+    }
+
+    const chips = document.getElementById('profile-hero-chips');
+    if (!chips) return;
+
+    const items: string[] = [];
+    const connected = (user.exchange_connections || []).length;
+    if (connected === 0) {
+      items.push(`<span class="profile-chip profile-chip-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>No exchanges</span>`);
+    } else if (user.has_validated_connection) {
+      items.push(`<span class="profile-chip profile-chip-ok">
+        <i class="fa-solid fa-circle-check"></i>${connected} connected</span>`);
+    } else {
+      items.push(`<span class="profile-chip profile-chip-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>${connected} unvalidated</span>`);
+    }
+
+    if (user.email_notifications_enabled) {
+      items.push(`<span class="profile-chip"><i class="fa-solid fa-envelope"></i>Email on</span>`);
+    }
+    if (user.is_active === false) {
+      items.push(`<span class="profile-chip profile-chip-warn">
+        <i class="fa-solid fa-pause"></i>Deactivated</span>`);
+    }
+
+    chips.innerHTML = items.join('');
+  }
+
+  // ── Assistant (Anthropic API key) ─────────────────────────────────────────
+
+  private async loadAiStatus(): Promise<void> {
+    try {
+      const token = AuthController.getToken();
+      if (!token) return;
+      const res = await AiData.getStatus(token);
+      this.setAiStatus(res.data.configured, res.data.model);
+    } catch {
+      this.setAiStatus(false, '');
+    }
+  }
+
+  private setAiStatus(configured: boolean, model: string): void {
+    this.aiConfigured = configured;
+
+    const pill = document.getElementById('ai-key-status');
+    if (pill) {
+      pill.textContent = configured ? `Connected · ${model}` : 'Not connected';
+      pill.classList.toggle('ai-status-on', configured);
+      pill.classList.toggle('ai-status-off', !configured);
+    }
+
+    const remove = document.getElementById('ai-key-remove');
+    remove?.classList.toggle('d-none', !configured);
+
+    const input = document.getElementById('ai-key-input') as HTMLInputElement;
+    if (input) {
+      input.value = '';
+      input.placeholder = configured ? 'Saved — enter a new key to replace it' : 'sk-ant-…';
+    }
+  }
+
+  private async saveAiKey(): Promise<void> {
+    const input = document.getElementById('ai-key-input') as HTMLInputElement;
+    const apiKey = input?.value.trim();
+    if (!apiKey) {
+      this.showError('ai', 'Paste your Anthropic API key first');
+      return;
+    }
+
+    const btn = document.getElementById('ai-key-save') as HTMLButtonElement;
+    const original = btn?.innerHTML;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying…';
+    }
+    try {
+      const token = AuthController.getToken();
+      if (!token) throw new Error('Not authenticated');
+      await AiData.saveKey(apiKey, token);
+      await this.loadAiStatus();
+      this.showSuccess('ai', 'API key verified and saved. The assistant is ready on the Overview page.');
+    } catch (error: any) {
+      this.showError('ai', error.message || 'Failed to save the API key');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        if (original) btn.innerHTML = original;
+      }
+    }
+  }
+
+  private async removeAiKey(): Promise<void> {
+    try {
+      const token = AuthController.getToken();
+      if (!token) throw new Error('Not authenticated');
+      await AiData.deleteKey(token);
+      this.setAiStatus(false, '');
+      this.showSuccess('ai', 'API key removed');
+    } catch (error: any) {
+      this.showError('ai', error.message || 'Failed to remove the API key');
     }
   }
 
@@ -249,15 +398,23 @@ class ProfileController {
     const list = document.getElementById('connections-list');
     if (!list) return;
 
+    // Badge the tab so the count is visible from any pane.
+    const count = document.getElementById('tab-count-exchanges');
+    if (count) {
+      count.textContent = String(this.connections.length);
+      count.classList.toggle('d-none', this.connections.length === 0);
+    }
+
     if (this.connections.length === 0) {
-      list.innerHTML = '<p class="text-muted">No exchange connections configured yet. Add one below.</p>';
+      list.innerHTML = '<p class="text-muted">No exchange connections yet. Add one below to start tracking a portfolio.</p>';
       return;
     }
 
     list.innerHTML = this.connections.map(c => {
       const statusClass = c.is_validated ? 'status-active' : 'status-inactive';
       const statusText = c.is_validated ? 'Validated' : 'Not Validated';
-      const sandboxBadge = c.is_sandbox ? '<span class="badge bg-warning text-dark ms-2">Sandbox</span>' : '';
+      const sandboxBadge = c.is_sandbox
+        ? '<span class="status-badge status-unverified">Sandbox</span>' : '';
       const lastValidated = c.keys_last_validated
         ? new Date(c.keys_last_validated.endsWith('Z') ? c.keys_last_validated : c.keys_last_validated + 'Z').toLocaleString()
         : 'Never';
@@ -268,18 +425,20 @@ class ProfileController {
       const exchangeName = (meta?.name || c.exchange_name || '')
         .replace(/\s*\(beta\)\s*/i, '');
 
-      return `<div class="connection-card mt-4" data-conn-id="${c.id}">
-        <div class="connection-info mb-4">
-          <span class="exchange-badge exchange-${this.escapeHtml(c.exchange_name)}">${this.escapeHtml(exchangeName)}</span>
-          <span class="connection-label">${this.escapeHtml(label)} - </span>
-          <span class="status-badge ${statusClass}">${statusText}</span>${sandboxBadge}
-          <span class="text-muted small">Last checked: ${this.escapeHtml(lastValidated)}</span>
+      return `<div class="connection-card" data-conn-id="${c.id}">
+        <div class="connection-main">
+          <div class="connection-top">
+            <span class="exchange-badge exchange-${this.escapeHtml(c.exchange_name)}">${this.escapeHtml(exchangeName)}</span>
+            <span class="connection-label">${this.escapeHtml(label)}</span>
+            <span class="status-badge ${statusClass}">${statusText}</span>${sandboxBadge}
+          </div>
+          <span class="connection-sub">Last checked: ${this.escapeHtml(lastValidated)}</span>
         </div>
         <div class="connection-actions">
-          <button class="btn btn-secondary btn-sm" data-action="validate" data-conn-id="${c.id}">
+          <button class="btn-sm" data-action="validate" data-conn-id="${c.id}">
             <i class="fa-solid fa-plug"></i> Test
           </button>
-          <button class="btn btn-danger btn-sm" data-action="delete" data-conn-id="${c.id}">
+          <button class="btn btn-danger btn-sm" data-action="delete" data-conn-id="${c.id}" title="Remove connection">
             <i class="fa-solid fa-trash"></i>
           </button>
         </div>
@@ -575,28 +734,37 @@ class ProfileController {
     }
   }
 
-  private showSuccess(section: string, message: string): void {
-    const errEl = document.querySelector(`[data-alert="${section}-error"]`);
-    if (errEl) errEl.classList.add('d-none');
-    const el = document.querySelector(`[data-alert="${section}-success"]`);
-    const msgEl = el?.querySelector('span');
-    if (el && msgEl) {
-      msgEl.textContent = message;
-      el.classList.remove('d-none');
-      setTimeout(() => el.classList.add('d-none'), 4000);
-    }
+  private showSuccess(_section: string, message: string): void {
+    this.showAlert(message, false);
   }
 
-  private showError(section: string, message: string): void {
-    const successEl = document.querySelector(`[data-alert="${section}-success"]`);
-    if (successEl) successEl.classList.add('d-none');
-    const el = document.querySelector(`[data-alert="${section}-error"]`);
+  private showError(_section: string, message: string): void {
+    this.showAlert(message, true);
+  }
+
+  /**
+   * One alert strip at the top of the page rather than a pair per section.
+   * The section argument is kept so every call site reads the same, but with
+   * tabbed panes a per-section alert could land on a pane you can't see.
+   */
+  private showAlert(message: string, isError: boolean): void {
+    const el = document.getElementById('profile-alert');
     const msgEl = el?.querySelector('span');
-    if (el && msgEl) {
-      msgEl.textContent = message;
-      el.classList.remove('d-none');
-      setTimeout(() => el.classList.add('d-none'), 4000);
+    const icon = el?.querySelector('i');
+    if (!el || !msgEl) return;
+
+    msgEl.textContent = message;
+    el.classList.toggle('is-error', isError);
+    if (icon) {
+      icon.className = isError
+        ? 'fa-solid fa-triangle-exclamation'
+        : 'fa-solid fa-circle-check';
     }
+    el.classList.remove('d-none');
+    el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    window.clearTimeout(this.alertTimer);
+    this.alertTimer = window.setTimeout(() => el.classList.add('d-none'), 5000);
   }
 
   private escapeHtml(str: string): string {

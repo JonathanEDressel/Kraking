@@ -35,6 +35,24 @@
     <div class="section-header">
       <h2 class="section-title" id="transfers-count-title">History</h2>
       <div class="holdings-toolbar">
+        <div class="orders-tab-strip" id="transfers-view-tabs">
+          <button class="rules-tab-btn active" data-view="roadmap" title="Where funds moved, in date order">
+            <i class="fa-solid fa-route"></i> Roadmap
+          </button>
+          <button class="rules-tab-btn" data-view="table" title="Every deposit and withdrawal as a table">
+            <i class="fa-solid fa-table-list"></i> Table
+          </button>
+        </div>
+        <button type="button" class="btn-secondary limit-btn-sm" id="transfers-wallets-btn"
+                title="Label the wallets your transfers go to and come from">
+          <i class="fa-solid fa-wallet"></i> Wallets <span id="transfers-wallets-count"></span>
+        </button>
+      </div>
+    </div>
+
+    <div class="section-header transfers-subbar">
+      <span class="transfers-match-summary" id="transfers-match-summary"></span>
+      <div class="holdings-toolbar">
         <select id="transfers-connection" class="holdings-conn-select" aria-label="Exchange connection">
           <option value="all">All exchanges</option>
         </select>
@@ -52,7 +70,14 @@
       </div>
     </div>
 
-    <div class="data-table-wrapper">
+    <!-- Roadmap: one entry per movement, newest first. A matched pair collapses
+         into a single hop with both ends named; an unpaired leg shows the one
+         end we know and says plainly that the other is unknown. -->
+    <div id="transfers-roadmap-view">
+      <div class="transfers-roadmap" id="transfers-roadmap"></div>
+    </div>
+
+    <div class="data-table-wrapper d-none" id="transfers-table-view">
       <table class="data-table" id="transfers-table">
         <thead>
           <tr>
@@ -85,8 +110,158 @@
 
   <p class="transfers-footnote">
     Transfer history is fetched from each exchange and stored locally so this page
-    loads instantly. Exchanges only report their own side of a transfer — a
-    withdrawal to your own wallet looks the same to them as one sent to anyone
-    else, so nothing here should be read as a record of who owns the far end.
+    loads instantly. Movements between two connected exchanges are paired
+    automatically — by shared transaction hash where one exists, otherwise by
+    matching the amount and timing, allowing for network fees. Anything else needs
+    an address you have labelled under <strong>Wallets</strong>: an exchange reports
+    the address a transfer went to, but never who owns it, so an unlabelled
+    counterparty is shown as unknown rather than guessed at.
   </p>
+</div>
+
+<!-- Tracked wallets. Lives in a dialog rather than a page section because it is
+     setup, not something you read — and because the suggestions list is the
+     path most people will take, which needs room. -->
+<div class="edit-rule-overlay d-none" id="wallets-overlay">
+  <div class="edit-rule-modal wallets-modal">
+    <div class="edit-rule-modal-header">
+      <div>
+        <h3>Tracked wallets</h3>
+        <span class="edit-rule-modal-subtitle">
+          Label an address once and every transfer to or from it is attributed, past and future.
+        </span>
+      </div>
+      <button class="edit-rule-modal-close" id="wallets-close" title="Close">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="edit-rule-modal-body">
+      <div class="alert alert-warning d-none" id="wallets-error"></div>
+      <div class="alert alert-success d-none" id="wallets-success"></div>
+
+      <div class="wallets-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="wallet-label">Label</label>
+            <input type="text" id="wallet-label" maxlength="60" autocomplete="off"
+                   placeholder="e.g. My Ledger, Cold storage, Mum">
+          </div>
+          <div class="form-group">
+            <label for="wallet-chain">Chain <span class="form-optional">optional</span></label>
+            <input type="text" id="wallet-chain" maxlength="32" autocomplete="off"
+                   placeholder="e.g. Bitcoin, Ethereum, Stellar">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="wallet-address">Address</label>
+          <input type="text" id="wallet-address" maxlength="128" autocomplete="off"
+                 spellcheck="false" placeholder="Paste the address only — no memo or tag">
+          <span class="form-hint">
+            On chains that use a memo or destination tag (XLM, XRP), put that in the
+            field below rather than on the address.
+          </span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="wallet-tag">Memo / tag <span class="form-optional">optional</span></label>
+            <input type="text" id="wallet-tag" maxlength="64" autocomplete="off"
+                   spellcheck="false" placeholder="Stellar memo or XRP destination tag">
+          </div>
+          <div class="form-group">
+            <label for="wallet-asset">Asset <span class="form-optional">optional</span></label>
+            <input type="text" id="wallet-asset" maxlength="16" autocomplete="off"
+                   placeholder="e.g. BTC, if it only holds one">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="wallet-notes">Notes <span class="form-optional">optional</span></label>
+          <input type="text" id="wallet-notes" maxlength="500" autocomplete="off"
+                 placeholder="Anything you want to remember about it">
+        </div>
+
+        <label class="radio-label">
+          <input type="checkbox" id="wallet-is-own" checked>
+          <span data-help="Only your own wallets make a transfer internal — a move between accounts you control rather than money leaving or arriving. Untick this for someone else's address you simply want to recognise by name.">
+            This wallet is mine
+          </span>
+        </label>
+
+        <div class="wallets-form-actions">
+          <button type="button" class="btn-secondary limit-btn-sm d-none" id="wallet-cancel-edit">Cancel</button>
+          <button type="button" class="btn-primary limit-btn-sm" id="wallet-save">
+            <i class="fa-solid fa-plus"></i> <span id="wallet-save-label">Add wallet</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk import. Sits above the one-at-a-time list because anyone with
+           more than two or three wallets wants this instead. -->
+      <div class="wallets-block wallets-import">
+        <h4 class="wallets-block-title">
+          Add several at once
+          <span class="wallets-block-hint">Excel or CSV</span>
+        </h4>
+
+        <div class="wallets-import-actions">
+          <button type="button" class="btn-secondary limit-btn-sm" id="wallet-template-btn">
+            <i class="fa-solid fa-file-arrow-down"></i> Download template
+          </button>
+          <button type="button" class="btn-secondary limit-btn-sm" id="wallet-export-btn">
+            <i class="fa-solid fa-file-export"></i> Export saved
+          </button>
+          <button type="button" class="btn-secondary limit-btn-sm" id="wallet-import-btn">
+            <i class="fa-solid fa-file-arrow-up"></i> Import from file
+          </button>
+          <!-- The file picker itself: a hidden input the button clicks, so the
+               control can be styled like the rest of the app. -->
+          <input type="file" id="wallet-import-input" class="d-none"
+                 accept=".xlsx,.csv,.tsv,.txt">
+        </div>
+
+        <p class="wallets-import-hint" id="wallet-import-status">
+          Download the template, fill in one row per wallet, then import it back.
+          Column order doesn't matter and re-importing the same file is safe.
+        </p>
+
+        <!-- Preview of what an import would do, before it does it. -->
+        <div class="wallets-import-preview d-none" id="wallet-import-preview">
+          <div class="wallets-preview-summary" id="wallet-preview-summary"></div>
+          <div class="wallets-preview-lists" id="wallet-preview-lists"></div>
+          <div class="wallets-import-confirm">
+            <button type="button" class="btn-secondary limit-btn-sm" id="wallet-import-cancel">
+              Cancel
+            </button>
+            <button type="button" class="btn-primary limit-btn-sm" id="wallet-import-confirm">
+              <i class="fa-solid fa-check"></i> <span id="wallet-import-confirm-label">Import</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Addresses already in the transfer history that aren't labelled yet.
+           Far and away the easiest way in: no hunting through exchange UIs. -->
+      <div class="wallets-block d-none" id="wallets-suggestions-block">
+        <h4 class="wallets-block-title">
+          Seen in your transfers
+          <span class="wallets-block-hint">Click one to fill the form</span>
+        </h4>
+        <div class="wallets-suggestions" id="wallets-suggestions"></div>
+      </div>
+
+      <div class="wallets-block">
+        <h4 class="wallets-block-title">Saved wallets</h4>
+        <div class="wallets-list" id="wallets-list">
+          <p class="wallets-empty">No wallets saved yet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="edit-rule-modal-footer">
+      <button class="btn-secondary" id="wallets-done">Done</button>
+    </div>
+  </div>
 </div>

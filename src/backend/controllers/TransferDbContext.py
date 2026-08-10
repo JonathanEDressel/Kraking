@@ -40,7 +40,8 @@ _SELECT_COLUMNS = '''
     t.id, t.exchange_connection_id, t.exchange_name, t.kind, t.external_id,
     t.txid, t.network, t.asset, t.amount, t.amount_num, t.fee_amount,
     t.fee_currency, t.status, t.address, t.tag, t.occurred_at,
-    t.usd_value, t.is_internal
+    t.usd_value, t.is_internal, t.internal_match_id, t.match_source,
+    t.match_confidence, t.counterparty_wallet_id, t.match_locked
 '''
 
 _UPSERT_SQL = f'''
@@ -130,6 +131,40 @@ class TransferDbContext:
         total = execute_scalar(
             f'SELECT COUNT(*) FROM transfer_history t WHERE {where}', tuple(params))
         return int(total or 0)
+
+    @staticmethod
+    def list_for_flow(user_id: int, since_ts: int | None = None,
+                      asset: str | None = None) -> list[dict]:
+        """Every leg needed to build the movement timeline, with its labels.
+
+        Joined out to the connection label and the wallet label here rather than
+        resolved in the controller: the alternative is one query per row to name
+        the far end of each hop.
+        """
+        clauses = ['t.user_id = ?']
+        params: list = [user_id]
+        if since_ts is not None:
+            clauses.append('t.occurred_at >= ?')
+            params.append(int(since_ts))
+        if asset:
+            clauses.append('t.asset = ?')
+            params.append(str(asset).upper())
+
+        return execute_query_all(
+            f'''SELECT t.id, t.exchange_connection_id, t.exchange_name, t.kind,
+                       t.asset, t.amount, t.amount_num, t.fee_amount, t.fee_currency,
+                       t.status, t.address, t.network, t.txid, t.occurred_at,
+                       t.is_internal, t.internal_match_id, t.match_source,
+                       t.match_confidence, t.counterparty_wallet_id, t.match_locked,
+                       c.label AS connection_label,
+                       w.label AS wallet_label, w.is_own AS wallet_is_own
+                FROM transfer_history t
+                LEFT JOIN exchange_connections c ON c.id = t.exchange_connection_id
+                LEFT JOIN user_wallets w ON w.id = t.counterparty_wallet_id
+                WHERE {' AND '.join(clauses)}
+                ORDER BY t.occurred_at DESC, t.id DESC''',
+            tuple(params)
+        )
 
     @staticmethod
     def get_distinct_assets(user_id: int) -> list[str]:

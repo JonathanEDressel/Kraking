@@ -12,6 +12,12 @@ contextBridge.exposeInMainWorld('cyrus', {
   saveKeygenScript: (exchange: string): Promise<{
     saved: boolean; path?: string; canceled?: boolean; error?: string;
   }> => ipcRenderer.invoke('save-keygen-script', exchange),
+  // Save renderer-produced bytes (base64) wherever the user chooses. Used for
+  // the wallet import template. Returns { saved, path?, canceled?, error? }.
+  saveFile: (args: {
+    defaultName: string; base64: string; filterName?: string; extensions?: string[];
+  }): Promise<{ saved: boolean; path?: string; canceled?: boolean; error?: string }> =>
+    ipcRenderer.invoke('save-file', args),
   showItemInFolder: (filePath: string): Promise<boolean> =>
     ipcRenderer.invoke('show-item-in-folder', filePath),
 });

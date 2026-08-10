@@ -230,6 +230,55 @@ ipcMain.handle('save-keygen-script', async (_event, exchange: string) => {
   }
 });
 
+/**
+ * Save arbitrary bytes the renderer produced to a location the user picks.
+ *
+ * Base64 rather than a Buffer because that is what survives the contextBridge
+ * without structured-clone surprises, and the payloads here are spreadsheets of
+ * a few KB. Capped so a bug in the renderer can't try to allocate a DVD.
+ */
+ipcMain.handle('save-file', async (_event, args: {
+  defaultName?: string; base64?: string; filterName?: string; extensions?: string[];
+}) => {
+  const { defaultName, base64, filterName, extensions } = args || {};
+  if (!base64) return { saved: false, error: 'Nothing to save.' };
+
+  const MAX_BYTES = 16 * 1024 * 1024;
+  let contents: Buffer;
+  try {
+    contents = Buffer.from(base64, 'base64');
+  } catch {
+    return { saved: false, error: 'That file could not be decoded.' };
+  }
+  if (!contents.length) return { saved: false, error: 'That file is empty.' };
+  if (contents.length > MAX_BYTES) return { saved: false, error: 'That file is too large to save.' };
+
+  // basename() strips any path the renderer sent, so a name like
+  // "../../autorun.inf" can only ever land in the folder the user chose.
+  const safeName = path.basename(String(defaultName || 'cyrus-export'));
+
+  try {
+    const options: Electron.SaveDialogOptions = {
+      title: 'Save file',
+      defaultPath: path.join(app.getPath('downloads'), safeName),
+    };
+    if (extensions?.length) {
+      options.filters = [{ name: filterName || 'File', extensions }];
+    }
+    const result = mainWindow
+      ? await dialog.showSaveDialog(mainWindow, options)
+      : await dialog.showSaveDialog(options);
+    if (result.canceled || !result.filePath) {
+      return { saved: false, canceled: true };
+    }
+    fs.writeFileSync(result.filePath, contents);
+    return { saved: true, path: result.filePath };
+  } catch (err: any) {
+    console.error('[SAVE] Could not save file:', err);
+    return { saved: false, error: err?.message || 'Could not save the file.' };
+  }
+});
+
 // Reveal a saved file in Explorer, so "where did it go?" needs no answer.
 ipcMain.handle('show-item-in-folder', async (_event, filePath: string) => {
   if (!filePath) return false;

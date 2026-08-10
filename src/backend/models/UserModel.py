@@ -15,7 +15,8 @@ class UserModel:
                  notify_email: Optional[str] = None,
                  smtp_password_encrypted: Optional[str] = None,
                  smtp_host: Optional[str] = None,
-                 smtp_port: Optional[int] = None):
+                 smtp_port: Optional[int] = None,
+                 anthropic_key_encrypted: Optional[str] = None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
@@ -31,7 +32,9 @@ class UserModel:
         self.smtp_password_encrypted = smtp_password_encrypted
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
-    
+        # Also encrypted at rest; only to_dict's boolean ever leaves the server.
+        self.anthropic_key_encrypted = anthropic_key_encrypted
+
     @staticmethod
     def from_row(row: dict) -> 'UserModel':
         if row is None:
@@ -52,6 +55,7 @@ class UserModel:
             smtp_password_encrypted=row.get('smtp_password_encrypted'),
             smtp_host=row.get('smtp_host'),
             smtp_port=row.get('smtp_port'),
+            anthropic_key_encrypted=row.get('anthropic_key_encrypted'),
         )
     
     def to_dict(self) -> dict:
@@ -77,4 +81,5 @@ class UserModel:
             'smtp_password_set': bool(self.smtp_password_encrypted),
             'smtp_host': self.smtp_host,
             'smtp_port': self.smtp_port,
+            'anthropic_key_set': bool(self.anthropic_key_encrypted),
         }

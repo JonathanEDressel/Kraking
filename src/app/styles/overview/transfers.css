@@ -117,6 +117,436 @@
   cursor: default;
 }
 
+/* ── Roadmap ───────────────────────────────────────────────────────────── */
+
+.transfers-subbar {
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.transfers-match-summary {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.transfers-roadmap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.transfers-roadmap-empty {
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.roadmap-day {
+  margin: 0.85rem 0 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim, #6b7280);
+}
+
+.roadmap-day:first-child { margin-top: 0; }
+
+.roadmap-hop {
+  display: flex;
+  gap: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.18));
+  border-left-width: 3px;
+  border-radius: 6px;
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.04));
+}
+
+/* The left edge carries the meaning: paired both-ends-known, money leaving,
+   money arriving. Colour rather than an icon so a long list reads at a glance. */
+.roadmap-hop-internal { border-left-color: var(--accent, #6366f1); }
+.roadmap-hop-outbound { border-left-color: #ef4444; }
+.roadmap-hop-inbound  { border-left-color: #22c55e; }
+
+.roadmap-time {
+  flex: 0 0 3.2rem;
+  padding-top: 0.1rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.75rem;
+  color: var(--text-dim, #6b7280);
+}
+
+.roadmap-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.roadmap-route {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.roadmap-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 5px;
+  background: var(--bg-tertiary, rgba(127, 127, 127, 0.12));
+  font-size: 0.82rem;
+  font-weight: 600;
+  max-width: 15rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roadmap-node i { font-size: 0.7rem; opacity: 0.8; }
+.roadmap-node-wallet { background: rgba(99, 102, 241, 0.14); }
+.roadmap-node-external { background: rgba(234, 179, 8, 0.12); }
+
+.roadmap-node-unknown {
+  background: transparent;
+  border: 1px dashed var(--border-color, rgba(127, 127, 127, 0.35));
+  color: var(--text-secondary, #9ca3af);
+  font-weight: 500;
+}
+
+/* The unknown end is the one thing on this page the user can act on, so it is a
+   button rather than text — the affordance has to be visible. */
+.roadmap-label-btn {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.roadmap-label-btn:hover {
+  border-style: solid;
+  border-color: var(--accent, #6366f1);
+  color: var(--text-primary);
+}
+
+.roadmap-label-cta {
+  margin-left: 0.15rem;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent, #6366f1);
+}
+
+.roadmap-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-dim, #6b7280);
+}
+
+.roadmap-arrow > i { font-size: 0.7rem; }
+
+.roadmap-amount {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.roadmap-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.roadmap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.roadmap-badge-paired { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+.roadmap-badge-review { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+.roadmap-badge-wallet { background: rgba(34, 197, 94, 0.13); color: #22c55e; }
+
+.roadmap-fee, .roadmap-arrived { font-size: 0.7rem; }
+
+.roadmap-suggestion {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: 5px;
+  background: rgba(234, 179, 8, 0.07);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.roadmap-suggestion-text { flex: 1 1 18rem; }
+
+.roadmap-suggestion-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex: 0 0 auto;
+}
+
+/* ── Wallets dialog ────────────────────────────────────────────────────── */
+
+.wallets-modal { max-width: 46rem; width: 100%; }
+
+.wallets-form { margin-bottom: 1.25rem; }
+
+.form-optional {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-dim, #6b7280);
+}
+
+.wallets-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.wallets-block { margin-top: 1.25rem; }
+
+.wallets-block-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.wallets-block-hint {
+  font-size: 0.68rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-dim, #6b7280);
+}
+
+.wallets-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.wallet-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px dashed var(--border-color, rgba(127, 127, 127, 0.3));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+}
+
+.wallet-suggestion:hover {
+  border-style: solid;
+  border-color: var(--accent, #6366f1);
+}
+
+.wallet-suggestion-addr {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.76rem;
+}
+
+.wallet-suggestion-meta {
+  font-size: 0.68rem;
+  color: var(--text-dim, #6b7280);
+}
+
+/* ── Bulk import ───────────────────────────────────────────────────────── */
+
+.wallets-import {
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.2));
+  border-radius: 8px;
+  background: var(--bg-secondary, rgba(127, 127, 127, 0.04));
+}
+
+.wallets-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.wallets-import-hint {
+  margin-top: 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.wallets-import-preview {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color, rgba(127, 127, 127, 0.2));
+}
+
+.wallets-preview-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.preview-chip {
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  background: var(--bg-tertiary, rgba(127, 127, 127, 0.15));
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.preview-chip-new   { background: rgba(34, 197, 94, 0.15);  color: #22c55e; }
+.preview-chip-dupe  { background: rgba(127, 127, 127, 0.18); color: #9ca3af; }
+.preview-chip-error { background: rgba(239, 68, 68, 0.15);  color: #ef4444; }
+.preview-chip-warn  { background: rgba(234, 179, 8, 0.15);  color: #eab308; }
+
+/* Capped and scrollable: a forty-row import must not push the confirm button
+   off the bottom of the dialog. */
+.wallets-preview-lists {
+  max-height: 15rem;
+  overflow-y: auto;
+}
+
+.preview-section { margin-bottom: 0.7rem; }
+
+.preview-section h5 {
+  margin-bottom: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim, #6b7280);
+}
+
+.preview-section ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.preview-section li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.preview-section-error li { color: #f87171; }
+.preview-section-warn li  { color: #eab308; }
+
+.preview-row {
+  flex: 0 0 auto;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.68rem;
+  color: var(--text-dim, #6b7280);
+}
+
+.preview-addr {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.7rem;
+  color: var(--text-dim, #6b7280);
+}
+
+.preview-more { font-style: italic; color: var(--text-dim, #6b7280); }
+
+.wallets-import-confirm {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.wallets-empty {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.wallets-list { display: flex; flex-direction: column; gap: 0.4rem; }
+
+.wallet-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border-color, rgba(127, 127, 127, 0.18));
+  border-radius: 6px;
+}
+
+.wallet-row-main { flex: 1 1 auto; min-width: 0; }
+
+.wallet-row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.wallet-row-label i { font-size: 0.72rem; opacity: 0.75; }
+
+.wallet-tag {
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  background: rgba(234, 179, 8, 0.15);
+  color: #eab308;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.wallet-row-address {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.72rem;
+  color: var(--text-dim, #6b7280);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wallet-row-side {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+.wallet-row-chain {
+  padding: 0.05rem 0.35rem;
+  border-radius: 3px;
+  background: var(--bg-tertiary, rgba(127, 127, 127, 0.14));
+}
+
 .transfers-footnote {
   margin-top: 1.25rem;
   font-size: 0.78rem;
